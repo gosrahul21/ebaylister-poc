@@ -1,26 +1,171 @@
-import { moveCursorToTargetElement, Position } from '@/background/helper/moveCursorToTargetElement';
+import { Position } from '@/background/helper/moveCursorToTargetElement';
+import { moveCursorAndClick } from '@/background/helper/moveCursorAndClick';
 import { AmazonProduct } from '../../../types';
 import {
   injectVisualCursor,
-  dispatchClick,
   getElementCoords,
   clickOutsideModal,
   smoothScrollToElement
 } from '../cdpHelper';
 import { togglePhotoWebPreference } from './togglePhotoWebPreference';
-import { injectImageUrlInput } from './injectImageUrlInput';
+import {
+  clickAddAdditionalButton,
+  injectImageUrl
+} from './injectImageUrlInput';
 
 export interface ImageUploadPosition {
   curX: number;
   curY: number;
 }
 
+const UPLOAD_WEB_BTN_SELECTOR = '.upload-buttons button:nth-child(2), button.btn--tertiary:nth-of-type(2), text:Upload from web';
+const SEE_OPTIONS_SELECTOR = '.se-expand-button__button, button.fake-menu-button__button, text:See photo options';
+const DONE_MODAL_BTN_SELECTOR = '.se-panel-container__header-suffix button, button.btn--secondary, [role="dialog"] button.btn--primary, text:Done';
+
 /**
- * Automates eBay listing image upload modal using CDP human-mimicking inputs.
- * 1. Checks if "Upload from web" button is present. If not, opens "See photo options" menu and enables "Upload photos from web" switch.
- * 2. Clicks "Upload from web" button to open the "Import from web" popup lightbox modal.
- * 3. Sequentially populates image URLs (URL 1, URL 2, ...) clicking "+ Add additional" between rows.
- * 4. Submits the modal by clicking the "Done" button.
+ * Ensures the "Upload from web" button is visible and active.
+ * If hidden, opens "See photo options" and toggles the web photo preference on.
+ */
+export async function ensureUploadFromWebButton(
+  debuggee: chrome.debugger.Debuggee,
+  currentPosition: Position
+): Promise<{ found: boolean; coords?: Position; currentPosition: Position; error?: string }> {
+  let uploadWebCoords = await smoothScrollToElement(debuggee, UPLOAD_WEB_BTN_SELECTOR);
+
+  // If "Upload from web" button is missing, enable it in "See photo options"
+  if (!uploadWebCoords.found || uploadWebCoords.x === undefined || uploadWebCoords.y === undefined) {
+    console.log('[CDP eBay Automator] Step 4a - "Upload from web" button not visible. Opening "See photo options"...');
+
+    const seeOptionsCoords = await smoothScrollToElement(debuggee, SEE_OPTIONS_SELECTOR);
+
+    if (seeOptionsCoords.found && seeOptionsCoords.x !== undefined && seeOptionsCoords.y !== undefined) {
+      currentPosition = await moveCursorAndClick(
+        currentPosition,
+        { x: seeOptionsCoords.x, y: seeOptionsCoords.y },
+        debuggee,
+        'Step 4a - Opening "See photo options"...'
+      );
+      await new Promise(r => setTimeout(r, 600));
+
+      // Toggle "Upload photos from web" switch if unchecked
+      console.log('[CDP eBay Automator] Step 4a - Checking "Upload photos from web" switch...');
+      const toggleInfo = await togglePhotoWebPreference(debuggee);
+      console.log(`[CDP eBay Automator] Step 4a - Photo web preference toggle state:`, toggleInfo);
+
+      await new Promise(r => setTimeout(r, 800));
+
+      // Re-query "Upload from web" button after enabling preference
+      uploadWebCoords = await smoothScrollToElement(debuggee, UPLOAD_WEB_BTN_SELECTOR);
+    }
+  }
+
+  if (uploadWebCoords.found && uploadWebCoords.x !== undefined && uploadWebCoords.y !== undefined) {
+    return {
+      found: true,
+      coords: { x: uploadWebCoords.x, y: uploadWebCoords.y },
+      currentPosition
+    };
+  }
+
+  return {
+    found: false,
+    currentPosition,
+    error: uploadWebCoords.error || 'Could not locate "Upload from web" button'
+  };
+}
+
+/**
+ * Clicks the "Upload from web" button and waits for the import lightbox modal to appear.
+ */
+export async function openImageUploadModal(
+  debuggee: chrome.debugger.Debuggee,
+  currentPosition: Position,
+  btnCoords: Position
+): Promise<Position> {
+  console.log(`[CDP eBay Automator] Step 4a - Opening "Import from web" modal at (${btnCoords.x}, ${btnCoords.y})...`);
+
+  currentPosition = await moveCursorAndClick(
+    currentPosition,
+    btnCoords,
+    debuggee,
+    'Step 4a - Clicking "Upload from web" button...'
+  );
+
+  // Wait for the "Import from web" lightbox modal to appear
+  await new Promise(r => setTimeout(r, 1800));
+  await injectVisualCursor(debuggee);
+
+  return currentPosition;
+}
+
+/**
+ * Sequentially populates image URLs into the modal inputs, clicking "+ Add additional"
+ * between rows when the next row is not already present.
+ */
+export async function populateImageUrls(
+  debuggee: chrome.debugger.Debuggee,
+  urls: string[],
+  currentPosition: Position
+): Promise<Position> {
+  console.log(`[CDP eBay Automator] Step 4a - Populating ${urls.length} image URLs in popup modal...`);
+
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    console.log(`[CDP eBay Automator] Step 4a - Processing Image ${i + 1}/${urls.length}: ${url}`);
+
+    const injectRes = await injectImageUrl(debuggee, url, i, currentPosition);
+    
+    if (injectRes.success) {
+      currentPosition = injectRes.currentPosition;
+      console.log(`[CDP eBay Automator] Step 4a - Successfully injected URL ${i + 1}: ${url}`);
+      await new Promise(r => setTimeout(r, 400));
+
+      // After inputting value, if more images exist, ensure the next input row is present
+      if (i < urls.length - 1) {
+        console.log(`[CDP eBay Automator] Step 4a - Row for URL ${i + 2} not present. Clicking "+ Add additional"...`);
+        currentPosition = await clickAddAdditionalButton(debuggee, currentPosition);
+        await new Promise(r => setTimeout(r, 600));
+      }
+    } else {
+      console.warn(`[CDP eBay Automator] Step 4a - Could NOT inject image ${i + 1}: ${injectRes.error}`);
+    }
+  }
+
+  await new Promise(r => setTimeout(r, 600));
+  return currentPosition;
+}
+
+/**
+ * Finalizes the image upload by clicking the "Done" button in the modal header,
+ * or clicking outside the modal as a fallback.
+ */
+export async function submitImageUploadModal(
+  debuggee: chrome.debugger.Debuggee,
+  currentPosition: Position
+): Promise<Position> {
+  const doneCoords = await getElementCoords(debuggee, DONE_MODAL_BTN_SELECTOR);
+
+  if (doneCoords.found && doneCoords.x !== undefined && doneCoords.y !== undefined) {
+    currentPosition = await moveCursorAndClick(
+      currentPosition,
+      { x: doneCoords.x, y: doneCoords.y },
+      debuggee,
+      `Step 4a - Clicking modal "Done" button at (${doneCoords.x}, ${doneCoords.y})`
+    );
+  } else {
+    console.log('[CDP eBay Automator] Step 4a - Modal "Done" button not found. Using fallback click outside.');
+    currentPosition = await clickOutsideModal(debuggee, currentPosition.x, currentPosition.y);
+  }
+
+  return currentPosition;
+}
+
+/**
+ * Automates the complete eBay product image upload process:
+ * 1. Checks and enables "Upload from web" preference if needed.
+ * 2. Opens the "Import from web" modal.
+ * 3. Populates image URLs sequentially.
+ * 4. Submits the modal.
  */
 export async function uploadProductImages(
   debuggee: chrome.debugger.Debuggee,
@@ -30,97 +175,29 @@ export async function uploadProductImages(
 ): Promise<ImageUploadPosition> {
   console.log('[CDP eBay Automator] Step 4a - Attempting Photo Upload via "Upload from web"...');
 
-  let currentPos: Position = { x: curX, y: curY };
-  const uploadWebBtnSelector = '.upload-buttons button:nth-child(2), button.btn--tertiary:nth-of-type(2), text:Upload from web';
-  let uploadWebCoords = await smoothScrollToElement(debuggee, uploadWebBtnSelector);
+  let currentPosition: Position = { x: curX, y: curY };
 
-  // ── 1. Preference Handling: If "Upload from web" button is missing, enable it in "See photo options" ──
-  if (!uploadWebCoords.found || uploadWebCoords.x === undefined || uploadWebCoords.y === undefined) {
-    console.log('[CDP eBay Automator] Step 4a - "Upload from web" button not visible. Opening "See photo options"...');
-    
-    const seeOptionsSelector = '.se-expand-button__button, button.fake-menu-button__button, text:See photo options';
-    const seeOptionsCoords = await smoothScrollToElement(debuggee, seeOptionsSelector);
-
-    if (seeOptionsCoords.found && seeOptionsCoords.x !== undefined && seeOptionsCoords.y !== undefined) {
-      const targetPos: Position = { x: seeOptionsCoords.x, y: seeOptionsCoords.y };
-      await moveCursorToTargetElement(currentPos, targetPos, debuggee);
-      await dispatchClick(debuggee, targetPos.x, targetPos.y);
-      currentPos = targetPos;
-      await new Promise(r => setTimeout(r, 600));
-      
-      // Toggle "Upload photos from web" switch if unchecked
-      console.log('[CDP eBay Automator] Step 4a - Checking "Upload photos from web" switch...');
-      const toggleInfo = await togglePhotoWebPreference(debuggee);
-      console.log(`[CDP eBay Automator] Step 4a - Photo web preference toggle state:`, toggleInfo);
-      
-      await new Promise(r => setTimeout(r, 800));
-
-      // Re-query "Upload from web" button after enabling preference
-      uploadWebCoords = await smoothScrollToElement(debuggee, uploadWebBtnSelector);
-    }
+  // 1. Ensure "Upload from web" button is accessible
+  const webBtn = await ensureUploadFromWebButton(debuggee, currentPosition);
+  if (!webBtn.found || !webBtn.coords) {
+    console.warn('[CDP eBay Automator] Step 4a - "Upload from web" button could not be accessed:', webBtn.error);
+    return { curX: currentPosition.x, curY: currentPosition.y };
   }
+  currentPosition = webBtn.currentPosition;
 
-  // ── 2. Click "Upload from web" Button to open popup modal ─────────────────
-  if (uploadWebCoords.found && uploadWebCoords.x !== undefined && uploadWebCoords.y !== undefined) {
-    console.log(`[CDP eBay Automator] Step 4a - Found "Upload from web" button at (${uploadWebCoords.x}, ${uploadWebCoords.y})`);
-    
-    const targetPos: Position = { x: uploadWebCoords.x, y: uploadWebCoords.y };
-    await moveCursorToTargetElement(currentPos, targetPos, debuggee);
-    console.log('[CDP eBay Automator] Step 4a - Clicking "Upload from web" button...');
-    await dispatchClick(debuggee, targetPos.x, targetPos.y);
-    currentPos = targetPos;
+  // 2. Open the "Import from web" modal
+  currentPosition = await openImageUploadModal(debuggee, currentPosition, webBtn.coords);
 
-    // Wait for the "Import from web" lightbox modal to appear
-    await new Promise(r => setTimeout(r, 1800));
-    await injectVisualCursor(debuggee);
+  // 3. Extract and populate image URLs
+  const imageUrls = targetProduct.images && targetProduct.images.length > 0
+    ? targetProduct.images
+    : (targetProduct.mainImage ? [targetProduct.mainImage] : []);
+  const urlsToUpload = imageUrls.slice(0, 24);
 
-    const imageUrls = targetProduct.images && targetProduct.images.length > 0
-      ? targetProduct.images
-      : (targetProduct.mainImage ? [targetProduct.mainImage] : []);
+  currentPosition = await populateImageUrls(debuggee, urlsToUpload, currentPosition);
 
-    const urlsToUpload = imageUrls.slice(0, 24);
-    console.log(`[CDP eBay Automator] Step 4a - Populating ${urlsToUpload.length} image URLs in popup modal...`);
+  // 4. Click "Done" to submit and close modal
+  currentPosition = await submitImageUploadModal(debuggee, currentPosition);
 
-    // ── 3. Populate Image URLs (URL 1, URL 2, ...) ───────────────────────────
-    for (let i = 0; i < urlsToUpload.length; i++) {
-      const url = urlsToUpload[i];
-      console.log(`[CDP eBay Automator] Step 4a - Processing Image ${i + 1}/${urlsToUpload.length}: ${url}`);
-
-      const injectRes = await injectImageUrlInput(debuggee, url, i);
-
-      if (injectRes.found && injectRes.x !== undefined && injectRes.y !== undefined) {
-        console.log(`[CDP eBay Automator] Step 4a - Successfully injected URL ${i + 1} into input (${injectRes.x}, ${injectRes.y}): ${url}`);
-
-        // Move visual cursor to the populated input element
-        const targetPos: Position = { x: injectRes.x, y: injectRes.y };
-        await moveCursorToTargetElement(currentPos, targetPos, debuggee);
-        currentPos = targetPos;
-
-        await new Promise(r => setTimeout(r, 400));
-      } else {
-        console.warn(`[CDP eBay Automator] Step 4a - Could NOT inject image ${i + 1}: ${injectRes.error}`);
-      }
-    }
-
-    await new Promise(r => setTimeout(r, 600));
-
-    // ── 4. Click "Done" Button in modal header suffix ─────────────────────────
-    const doneModalBtnSelector = '.se-panel-container__header-suffix button, button.btn--secondary, [role="dialog"] button.btn--primary, text:Done';
-    const doneCoords = await getElementCoords(debuggee, doneModalBtnSelector);
-
-    if (doneCoords.found && doneCoords.x !== undefined && doneCoords.y !== undefined) {
-      console.log(`[CDP eBay Automator] Step 4a - Clicking modal "Done" button at (${doneCoords.x}, ${doneCoords.y})`);
-      const donePos: Position = { x: doneCoords.x, y: doneCoords.y };
-      await moveCursorToTargetElement(currentPos, donePos, debuggee);
-      await dispatchClick(debuggee, donePos.x, donePos.y);
-      currentPos = donePos;
-    } else {
-      console.log('[CDP eBay Automator] Step 4a - Modal "Done" button not found. Using fallback click outside.');
-      currentPos = await clickOutsideModal(debuggee, currentPos.x, currentPos.y);
-    }
-  } else {
-    console.warn('[CDP eBay Automator] Step 4a - "Upload from web" button could not be accessed:', uploadWebCoords.error);
-  }
-
-  return { curX: currentPos.x, curY: currentPos.y };
+  return { curX: currentPosition.x, curY: currentPosition.y };
 }
