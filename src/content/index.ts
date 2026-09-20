@@ -110,15 +110,60 @@ chrome.runtime.onMessage.addListener((req: ExtensionRequest, _sender, sendRespon
   }
 });
 
-// Auto-inject floating save button on Amazon product details pages
+// Auto-inject floating save button on Amazon product details pages with polling & retry
+function isAmazonProductPage(): boolean {
+  if (!window.location.hostname.includes('amazon.')) return false;
+  
+  // Check URL patterns (/dp/ASIN or /gp/product/ASIN)
+  if (/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i.test(window.location.href)) return true;
+  
+  // Check DOM indicators
+  const productIndicators = document.querySelector(
+    '#productTitle, #title, input#ASIN, input[name="ASIN"], [data-asin], #dp-container, #ppd'
+  );
+  return !!productIndicators;
+}
+
+function initAutoInject() {
+  if (document.getElementById('amazon-product-saver-float')) return;
+
+  if (isAmazonProductPage()) {
+    const product = extractAmazonProductDetails();
+    if (product) {
+      injectFloatingSaveButton();
+      return;
+    }
+  }
+
+  // Polling fallback up to 15 retries (15 seconds) for dynamically rendered Amazon pages
+  let retries = 0;
+  const timer = setInterval(() => {
+    retries++;
+    if (document.getElementById('amazon-product-saver-float')) {
+      clearInterval(timer);
+      return;
+    }
+
+    if (isAmazonProductPage()) {
+      const product = extractAmazonProductDetails();
+      if (product) {
+        injectFloatingSaveButton();
+        clearInterval(timer);
+        return;
+      }
+    }
+
+    if (retries >= 15) {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
+
 if (window.location.hostname.includes('amazon.')) {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      if (document.querySelector('#productTitle, #title')) {
-        injectFloatingSaveButton();
-      }
-    });
-  } else if (document.querySelector('#productTitle, #title')) {
-    injectFloatingSaveButton();
+    document.addEventListener('DOMContentLoaded', initAutoInject);
+  } else {
+    initAutoInject();
   }
 }
+

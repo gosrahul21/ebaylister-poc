@@ -29,9 +29,26 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
 
   // 2. Extract Title
   let title = '';
-  const titleEl = document.querySelector('#productTitle');
-  if (titleEl) {
-    title = titleEl.textContent?.trim().replace(/\s+/g, ' ') || '';
+  const titleSelectors = [
+    '#productTitle',
+    '#title',
+    '#productTitle_feature_div h1',
+    '#titleSection h1',
+    'h1.a-size-large',
+    'span#productTitle',
+    'h1'
+  ];
+  for (const sel of titleSelectors) {
+    const titleEl = document.querySelector(sel);
+    if (titleEl && titleEl.textContent?.trim()) {
+      const candidateText = titleEl.textContent.trim().replace(/\s+/g, ' ');
+      if (candidateText.length > 3 && !candidateText.toLowerCase().includes('amazon')) {
+        title = candidateText;
+        break;
+      } else if (!title && candidateText.length > 3) {
+        title = candidateText;
+      }
+    }
   }
   // stop proceeding further if no title found
   if (!title) return null; 
