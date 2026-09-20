@@ -11,16 +11,7 @@
     "scripting"
   ],
   "host_permissions": [
-    "*://*.ebay.com/*",
-    "*://*.amazon.com/*",
-    "*://*.amazon.in/*",
-    "*://*.amazon.co.uk/*",
-    "*://*.amazon.de/*",
-    "*://*.amazon.ca/*",
-    "*://*.amazon.fr/*",
-    "*://*.amazon.es/*",
-    "*://*.amazon.it/*",
-    "*://*.amazon.co.jp/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js",
@@ -41,10 +32,16 @@
         "*://*.amazon.fr/*",
         "*://*.amazon.es/*",
         "*://*.amazon.it/*",
-        "*://*.amazon.co.jp/*"
+        "*://*.amazon.co.jp/*",
+        "*://*.amazon.com.au/*",
+        "*://*.amazon.com.mx/*",
+        "*://*.amazon.sg/*",
+        "*://*.amazon.ae/*",
+        "*://amazon.com/*",
+        "*://amazon.in/*"
       ],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ]
 }
