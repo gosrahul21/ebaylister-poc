@@ -1,30 +1,42 @@
-import { ExtensionAction, ExtensionRequest, ExtensionResponse } from '../types';
+import type { ExtensionRequest, ExtensionResponse } from '../types';
 import { extractAmazonProductDetails } from './helpers/extractAmazonProductDetails';
+
+const ACTION_SAVE_PRODUCT = 'SAVE_AMAZON_PRODUCT';
+const ACTION_SCRAPE_PRODUCT = 'SCRAPE_AMAZON_PRODUCT';
 
 // ── Floating Page Action Overlay (Shadow DOM Isolated) ────────────────────────
 function injectFloatingSaveButton() {
+  if (!document.body) {
+    return;
+  }
+
   const existingRoot = document.getElementById('amazon-product-saver-root');
   if (existingRoot && document.contains(existingRoot)) {
-    return;
+    if (existingRoot.parentElement === document.body) {
+      return;
+    }
+    existingRoot.remove();
   }
 
   const rootHost = document.createElement('div');
   rootHost.id = 'amazon-product-saver-root';
   rootHost.style.cssText = `
-    all: initial !important;
     position: fixed !important;
     bottom: 24px !important;
     right: 24px !important;
     z-index: 2147483647 !important;
-    pointer-events: auto !important;
     display: block !important;
-    opacity: 1 !important;
+    pointer-events: auto !important;
     visibility: visible !important;
-    width: auto !important;
-    height: auto !important;
+    opacity: 1 !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
+    transform: none !important;
+    filter: none !important;
+    width: auto !important;
+    height: auto !important;
+    box-sizing: border-box !important;
   `;
 
   const shadow = rootHost.attachShadow({ mode: 'open' });
@@ -32,7 +44,6 @@ function injectFloatingSaveButton() {
   const style = document.createElement('style');
   style.textContent = `
     :host {
-      all: initial !important;
       position: fixed !important;
       bottom: 24px !important;
       right: 24px !important;
@@ -41,10 +52,14 @@ function injectFloatingSaveButton() {
       pointer-events: auto !important;
       opacity: 1 !important;
       visibility: visible !important;
+      width: auto !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
     }
 
     .saver-pill-button {
-      all: unset !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -66,6 +81,10 @@ function injectFloatingSaveButton() {
       visibility: visible !important;
       opacity: 1 !important;
       white-space: nowrap !important;
+      outline: none !important;
+      text-decoration: none !important;
+      height: auto !important;
+      width: auto !important;
     }
 
     .saver-pill-button:hover {
@@ -102,6 +121,7 @@ function injectFloatingSaveButton() {
 
   const btn = document.createElement('button');
   btn.className = 'saver-pill-button';
+  btn.type = 'button';
   btn.innerHTML = `
     <span style="font-size: 18px; line-height: 1; display: inline-block;">🛍️</span>
     <span id="btn-label" style="font-size: 14px; font-weight: 700; color: #ff9900; line-height: 1; display: inline-block;">Save Product Details</span>
@@ -122,7 +142,7 @@ function injectFloatingSaveButton() {
     if (label) label.innerText = '⏳ Saving product...';
 
     chrome.runtime.sendMessage(
-      { action: ExtensionAction.SAVE_AMAZON_PRODUCT, product },
+      { action: ACTION_SAVE_PRODUCT, product },
       (res: ExtensionResponse) => {
         btn.style.pointerEvents = 'auto';
         if (label) label.innerText = 'Save Product Details';
@@ -139,11 +159,8 @@ function injectFloatingSaveButton() {
   shadow.appendChild(style);
   shadow.appendChild(btn);
 
-  const container = document.body || document.documentElement;
-  if (container) {
-    container.appendChild(rootHost);
-    console.log('[Product Lister] Floating Shadow DOM save button successfully injected into Amazon page!');
-  }
+  document.body.appendChild(rootHost);
+  console.log('[Product Lister] Floating Shadow DOM save button successfully injected into document.body!');
 }
 
 function showShadowToast(shadow: ShadowRoot, message: string, isError = false) {
@@ -162,7 +179,7 @@ function showShadowToast(shadow: ShadowRoot, message: string, isError = false) {
 
 // ── Message Listener ──────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((req: ExtensionRequest, _sender, sendResponse) => {
-  if (req.action === ExtensionAction.SCRAPE_AMAZON_PRODUCT) {
+  if (req.action === ACTION_SCRAPE_PRODUCT) {
     const product = extractAmazonProductDetails();
     if (product) {
       sendResponse({ success: true, product });
@@ -185,22 +202,24 @@ function isAmazonDomain(): boolean {
 function isAmazonProductPage(): boolean {
   if (!isAmazonDomain()) return false;
 
-  // 1. Check URL patterns (/dp/ASIN, /gp/product/ASIN, /product/ASIN, /gp/aw/d/ASIN, /d/ASIN, ?asin=ASIN)
   const href = window.location.href;
   const pathname = window.location.pathname;
   const search = window.location.search;
 
+  // 1. Check URL patterns (/dp/ASIN, /gp/product/ASIN, /product/ASIN, /gp/aw/d/ASIN, /d/ASIN, ?asin=ASIN)
   if (
     /\/(?:dp|gp\/product|product|gp\/aw\/d|d)\/([A-Z0-9]{10})/i.test(href) ||
     /[?&]asin=([A-Z0-9]{10})/i.test(search) ||
-    pathname.includes('/dp/')
+    pathname.includes('/dp/') ||
+    pathname.includes('/gp/product/') ||
+    pathname.includes('/gp/aw/d/')
   ) {
     return true;
   }
 
   // 2. Check DOM indicators on the page
   const productIndicators = document.querySelector(
-    '#productTitle, span#productTitle, #title, #titleSection, #item_name, #ebooksProductTitle, input#ASIN, input[name="ASIN"], #dp, #dp-container, #ppd, #centerCol, #corePrice_feature_div'
+    '#productTitle, span#productTitle, #title, #titleSection, #item_name, #ebooksProductTitle, input#ASIN, input[name="ASIN"], #dp, #dp-container, #ppd, #centerCol, #corePrice_feature_div, #add-to-cart-button, #buy-now-button'
   );
 
   return Boolean(productIndicators);
@@ -214,7 +233,7 @@ function syncFloatingButton() {
   const existingRoot = document.getElementById('amazon-product-saver-root');
 
   if (isProduct) {
-    if (!existingRoot || !document.contains(existingRoot)) {
+    if (!existingRoot || !document.contains(existingRoot) || existingRoot.parentElement !== document.body) {
       injectFloatingSaveButton();
     }
   } else {
@@ -228,7 +247,7 @@ function syncFloatingButton() {
 function setupAutoInject() {
   if (!isAmazonDomain()) return;
 
-  console.log('[Product Lister] Amazon content script initialized:', window.location.href);
+  console.log('[Product Lister] Amazon content script initialized on:', window.location.href);
 
   // Initial attempt
   syncFloatingButton();
@@ -266,7 +285,7 @@ function setupAutoInject() {
     }, 250);
   });
 
-  const observeTarget = document.documentElement || document.body;
+  const observeTarget = document.body || document.documentElement;
   if (observeTarget) {
     observer.observe(observeTarget, { childList: true, subtree: true });
   }
