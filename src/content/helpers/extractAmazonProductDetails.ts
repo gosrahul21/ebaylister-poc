@@ -14,7 +14,8 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
   }
 
   if (!asin) {
-    const urlMatch = window.location.href.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+    const urlMatch = window.location.href.match(/\/(?:dp|gp\/product|product|gp\/aw\/d|d)\/([A-Z0-9]{10})/i) ||
+                     window.location.search.match(/[?&]asin=([A-Z0-9]{10})/i);
     if (urlMatch) {
       asin = urlMatch[1].toUpperCase();
     }
@@ -67,13 +68,14 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
   let price = '';
 
   const priceSelectors = [
-    // '.apexPriceToPay .a-offscreen',
-    // '#corePrice_feature_div .a-offscreen',
+    '.priceToPay .a-offscreen',
+    '.apexPriceToPay .a-offscreen',
+    '#corePriceDisplay_desktop_feature_div .a-offscreen',
+    '#corePrice_feature_div .a-offscreen',
     '.a-price .a-offscreen',
-    // '#priceblock_ourprice',
-    // '#priceblock_dealprice',
-    // '#price_inside_buybox',
-    // '.priceToPay .a-offscreen'
+    '#price_inside_buybox',
+    '#priceblock_ourprice',
+    '#priceblock_dealprice'
   ];
 
   for (const selector of priceSelectors) {
