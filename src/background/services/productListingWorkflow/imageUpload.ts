@@ -3,11 +3,12 @@ import { AmazonProduct } from '../../../types';
 import {
   injectVisualCursor,
   dispatchClick,
-  cdpHumanInput,
   getElementCoords,
   clickOutsideModal,
   smoothScrollToElement
 } from '../cdpHelper';
+import { togglePhotoWebPreference } from './togglePhotoWebPreference';
+import { injectImageUrlInput } from './injectImageUrlInput';
 
 export interface ImageUploadPosition {
   curX: number;
@@ -28,7 +29,7 @@ export async function uploadProductImages(
   curY: number
 ): Promise<ImageUploadPosition> {
   console.log('[CDP eBay Automator] Step 4a - Attempting Photo Upload via "Upload from web"...');
-  
+
   let currentPos: Position = { x: curX, y: curY };
   const uploadWebBtnSelector = '.upload-buttons button:nth-child(2), button.btn--tertiary:nth-of-type(2), text:Upload from web';
   let uploadWebCoords = await smoothScrollToElement(debuggee, uploadWebBtnSelector);
@@ -46,26 +47,10 @@ export async function uploadProductImages(
       await dispatchClick(debuggee, targetPos.x, targetPos.y);
       currentPos = targetPos;
       await new Promise(r => setTimeout(r, 600));
-
+      
       // Toggle "Upload photos from web" switch if unchecked
       console.log('[CDP eBay Automator] Step 4a - Checking "Upload photos from web" switch...');
-      const toggleRes = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
-        expression: `
-          (function() {
-            const webSwitch = document.querySelector('input[name="photoUploadWebPref"], input[aria-label="Upload photos from web"]');
-            if (!webSwitch) return JSON.stringify({ found: false });
-            if (!webSwitch.checked) {
-              const label = webSwitch.closest('.se-field') || webSwitch.parentElement;
-              (label || webSwitch).click();
-              return JSON.stringify({ found: true, toggled: true });
-            }
-            return JSON.stringify({ found: true, toggled: false });
-          })()
-        `,
-        returnByValue: true
-      }) as { result?: { value?: string } };
-
-      const toggleInfo = toggleRes.result?.value ? JSON.parse(toggleRes.result.value) : { found: false };
+      const toggleInfo = await togglePhotoWebPreference(debuggee);
       console.log(`[CDP eBay Automator] Step 4a - Photo web preference toggle state:`, toggleInfo);
       
       await new Promise(r => setTimeout(r, 800));
@@ -100,94 +85,20 @@ export async function uploadProductImages(
     for (let i = 0; i < urlsToUpload.length; i++) {
       const url = urlsToUpload[i];
       console.log(`[CDP eBay Automator] Step 4a - Processing Image ${i + 1}/${urlsToUpload.length}: ${url}`);
-      
-      let inputCoords: { found: boolean; x?: number; y?: number; error?: string } = { found: false };
 
-      // Retry locating URL input for index i up to 5 times (modal render delays)
-      for (let retry = 0; retry < 5; retry++) {
-        const inputCoordsRes = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
-          expression: `
-            (function() {
-              // 1. Try exact eBay pattern [i]-se-textbox using JS string matching
-              const allInputs = Array.from(document.querySelectorAll('input'));
-              let targetInput = allInputs.find(inp => inp.id && (inp.id.includes('[' + ${i} + ']-se-textbox') || (inp.id.includes('@PHOTOS') && inp.id.includes('[' + ${i} + ']'))));
-              
-              if (!targetInput) {
-                // 2. Try .url-row container index i
-                const urlRows = Array.from(document.querySelectorAll('.url-row'));
-                if (urlRows[${i}]) {
-                  targetInput = urlRows[${i}].querySelector('input.textbox__control, input');
-                }
-              }
+      const injectRes = await injectImageUrlInput(debuggee, url, i);
 
-              if (!targetInput) {
-                // 3. Query all visible inputs in photo modal dialog
-                const modal = document.querySelector('.lightbox-dialog__main, [role="dialog"], [aria-modal="true"], .se-panel-container') || document.body;
-                const inputs = Array.from(modal.querySelectorAll('.url-row input, input.textbox__control, input[type="text"], input'));
-                const visibleInputs = inputs.filter(inp => {
-                  const style = window.getComputedStyle(inp);
-                  const rect = inp.getBoundingClientRect();
-                  return style.display !== 'none' && style.visibility !== 'hidden' && inp.offsetParent !== null && rect.width > 0 && rect.height > 0;
-                });
-                targetInput = visibleInputs[${i}] || visibleInputs.find(inp => !inp.value.trim()) || visibleInputs[visibleInputs.length - 1];
-              }
+      if (injectRes.found && injectRes.x !== undefined && injectRes.y !== undefined) {
+        console.log(`[CDP eBay Automator] Step 4a - Successfully injected URL ${i + 1} into input (${injectRes.x}, ${injectRes.y}): ${url}`);
 
-              if (!targetInput) return JSON.stringify({ found: false, error: 'No visible input element found' });
-              
-              targetInput.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
-              targetInput.focus();
-              const rect = targetInput.getBoundingClientRect();
-              return JSON.stringify({
-                found: true,
-                x: Math.round(rect.left + rect.width / 2),
-                y: Math.round(rect.top + rect.height / 2)
-              });
-            })()
-          `,
-          returnByValue: true
-        }) as { result?: { value?: string } };
+        // Move visual cursor to the populated input element
+        const targetPos: Position = { x: injectRes.x, y: injectRes.y };
+        await moveCursorToTargetElement(currentPos, targetPos, debuggee);
+        currentPos = targetPos;
 
-        inputCoords = inputCoordsRes.result?.value ? JSON.parse(inputCoordsRes.result.value) : { found: false };
-        if (inputCoords.found) break;
-        await new Promise(r => setTimeout(r, 350));
-      }
-      
-      if (inputCoords.found && inputCoords.x !== undefined && inputCoords.y !== undefined) {
-        console.log(`[CDP eBay Automator] Step 4a - Found URL ${i + 1} input at (${inputCoords.x}, ${inputCoords.y})`);
-        
-        // Type image URL into current input row using cdpHumanInput
-        const typeRes = await cdpHumanInput(
-          debuggee,
-          { x: inputCoords.x, y: inputCoords.y },
-          url,
-          currentPos
-        );
-
-        if (typeRes.found) {
-          currentPos = { x: typeRes.x, y: typeRes.y };
-        }
-
-        console.log(`[CDP eBay Automator] Step 4a - Entered image URL ${i + 1}: ${url}`);
         await new Promise(r => setTimeout(r, 400));
-
-        // Click "+ Add additional" button (button[name="addAdditional"]) if more URLs remain
-        if (i < urlsToUpload.length - 1) {
-          const addBtnSelector = 'button[name="addAdditional"], button.row-button, text:Add additional';
-          const addBtnCoords = await getElementCoords(debuggee, addBtnSelector);
-          
-          if (addBtnCoords.found && addBtnCoords.x !== undefined && addBtnCoords.y !== undefined) {
-            console.log(`[CDP eBay Automator] Step 4a - Clicking "+ Add additional" button for next URL row...`);
-            const addPos: Position = { x: addBtnCoords.x, y: addBtnCoords.y };
-            await moveCursorToTargetElement(currentPos, addPos, debuggee);
-            await dispatchClick(debuggee, addPos.x, addPos.y);
-            currentPos = addPos;
-            await new Promise(r => setTimeout(r, 700));
-          } else {
-            console.warn('[CDP eBay Automator] Step 4a - "+ Add additional" button not found.');
-          }
-        }
       } else {
-        console.warn(`[CDP eBay Automator] Step 4a - Could NOT find input field for image ${i + 1}: ${inputCoords.error}`);
+        console.warn(`[CDP eBay Automator] Step 4a - Could NOT inject image ${i + 1}: ${injectRes.error}`);
       }
     }
 
