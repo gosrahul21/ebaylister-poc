@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Product Lister POC — Amazon Details Saver",
+  "version": "1.0.0",
+  "description": "Extracts and saves full Amazon product details, images, features, description, and specs.",
+  "permissions": [
+    "debugger",
+    "storage",
+    "activeTab",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.ebay.com/*",
+    "*://*.amazon.com/*",
+    "*://*.amazon.in/*",
+    "*://*.amazon.co.uk/*",
+    "*://*.amazon.de/*",
+    "*://*.amazon.ca/*",
+    "*://*.amazon.fr/*",
+    "*://*.amazon.es/*",
+    "*://*.amazon.it/*",
+    "*://*.amazon.co.jp/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Amazon Product Lister"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.amazon.com/*",
+        "*://*.amazon.in/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.fr/*",
+        "*://*.amazon.es/*",
+        "*://*.amazon.it/*",
+        "*://*.amazon.co.jp/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

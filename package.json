@@ -1,0 +1,18 @@
+{
+  "name": "product-lister-poc",
+  "version": "1.0.0",
+  "description": "Chrome Extension TypeScript template for CDP human mimic product lister POC",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chrome": "^0.0.308",
+    "@types/node": "^22.13.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.1"
+  }
+}
