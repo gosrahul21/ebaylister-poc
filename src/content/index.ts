@@ -69,7 +69,11 @@ function injectFloatingSaveButton() {
     );
   });
 
-  document.body.appendChild(btn);
+  const container = document.body || document.documentElement;
+  if (container) {
+    container.appendChild(btn);
+    console.log('[Product Lister] Floating "Save Product Details" button successfully injected into page!');
+  }
 }
 
 function showToast(message: string, isError = false) {
@@ -114,12 +118,13 @@ chrome.runtime.onMessage.addListener((req: ExtensionRequest, _sender, sendRespon
 function isAmazonProductPage(): boolean {
   if (!window.location.hostname.includes('amazon.')) return false;
   
-  // Check URL patterns (/dp/ASIN or /gp/product/ASIN)
-  if (/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i.test(window.location.href)) return true;
+  // Check URL patterns (/dp/ASIN, /gp/product/ASIN, etc.)
+  if (/\/(?:dp|gp\/product|product-reviews)\/([A-Z0-9]{10})/i.test(window.location.href)) return true;
+  if (window.location.href.includes('/dp/')) return true;
   
   // Check DOM indicators
   const productIndicators = document.querySelector(
-    '#productTitle, #title, input#ASIN, input[name="ASIN"], [data-asin], #dp-container, #ppd'
+    '#productTitle, #title, input#ASIN, input[name="ASIN"], [data-asin], #dp-container, #ppd, #centerCol'
   );
   return !!productIndicators;
 }
@@ -128,14 +133,11 @@ function initAutoInject() {
   if (document.getElementById('amazon-product-saver-float')) return;
 
   if (isAmazonProductPage()) {
-    const product = extractAmazonProductDetails();
-    if (product) {
-      injectFloatingSaveButton();
-      return;
-    }
+    injectFloatingSaveButton();
+    return;
   }
 
-  // Polling fallback up to 15 retries (15 seconds) for dynamically rendered Amazon pages
+  // Polling fallback up to 20 retries (10 seconds) for dynamically rendered Amazon pages
   let retries = 0;
   const timer = setInterval(() => {
     retries++;
@@ -145,25 +147,24 @@ function initAutoInject() {
     }
 
     if (isAmazonProductPage()) {
-      const product = extractAmazonProductDetails();
-      if (product) {
-        injectFloatingSaveButton();
-        clearInterval(timer);
-        return;
-      }
+      injectFloatingSaveButton();
+      clearInterval(timer);
+      return;
     }
 
-    if (retries >= 15) {
+    if (retries >= 20) {
       clearInterval(timer);
     }
-  }, 1000);
+  }, 500);
 }
 
 if (window.location.hostname.includes('amazon.')) {
+  console.log('[Product Lister] Amazon page detected:', window.location.href);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAutoInject);
   } else {
     initAutoInject();
   }
 }
+
 

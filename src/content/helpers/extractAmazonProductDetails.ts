@@ -42,7 +42,7 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     const titleEl = document.querySelector(sel);
     if (titleEl && titleEl.textContent?.trim()) {
       const candidateText = titleEl.textContent.trim().replace(/\s+/g, ' ');
-      if (candidateText.length > 3 && !candidateText.toLowerCase().includes('amazon')) {
+      if (candidateText.length > 3 && !candidateText.toLowerCase().includes('amazon.com') && !candidateText.toLowerCase().includes('amazon.in')) {
         title = candidateText;
         break;
       } else if (!title && candidateText.length > 3) {
@@ -50,8 +50,18 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
       }
     }
   }
-  // stop proceeding further if no title found
-  if (!title) return null; 
+
+  // Fallback to document.title if element-specific title is not found
+  if (!title && document.title) {
+    title = document.title
+      .replace(/^Amazon\.[a-z.]+:?\s*/i, '')
+      .replace(/:\s*Amazon\.[a-z.]+$/i, '')
+      .trim();
+  }
+
+  if (!title) {
+    title = 'Amazon Product';
+  }
 
   // 3. Extract Price
   let price = '';
