@@ -1,4 +1,4 @@
-import { ListingFormSchema } from '../../types';
+import { ListingFormSchema, FormFieldSchema } from '../../types';
 import { saveFormSchema } from './storageService';
 
 /**
@@ -116,11 +116,11 @@ export async function extractFormSchema(debuggee: chrome.debugger.Debuggee): Pro
             });
           }
 
-          // 5. Pricing (Format, Duration, Starting bid, Buy It Now, Reserve Price, Quantity, Auto relist)
+          // 5. Pricing (Format master dropdown only - subfields dynamically extracted in pricingStep)
           const priceContainer = document.querySelector('.summary__price, [class*="summary__price"]');
           if (priceContainer) {
             const formatNativeSelect = priceContainer.querySelector('select[name="format"]');
-            const formatBtn = priceContainer.querySelector('.format button');
+            const formatBtn = priceContainer.querySelector('.format button, button[aria-labelledby*="format"]');
             if (formatNativeSelect || formatBtn) {
               allFields.push({
                 id: formatNativeSelect?.id || formatBtn?.id || 'format',
@@ -129,67 +129,44 @@ export async function extractFormSchema(debuggee: chrome.debugger.Debuggee): Pro
                 type: 'select',
                 section: 'Pricing',
                 required: true,
-                currentValue: formatNativeSelect?.value || (formatBtn?.querySelector('.btn__text')?.textContent || '').trim(),
+                currentValue: (formatBtn?.querySelector('.btn__text')?.textContent || formatNativeSelect?.value || '').trim(),
                 options: ['Auction', 'Buy It Now'],
-                selector: 'select[name="format"], .format button'
+                selector: '.format button, select[name="format"], button[aria-labelledby*="format"]'
               });
             }
-
-            const durationSelect = priceContainer.querySelector('select[name="duration"]');
-            if (durationSelect) {
-              allFields.push({
-                id: durationSelect.id || 'duration',
-                name: 'duration',
-                label: 'Auction duration',
-                type: 'select',
-                section: 'Pricing',
-                required: false,
-                currentValue: durationSelect.value || '',
-                options: ['3 days', '5 days', '7 days', '10 days'],
-                selector: 'select[name="duration"]'
-              });
-            }
-
-            const priceInputs = Array.from(priceContainer.querySelectorAll('input[name="startPrice"], input[name="price"], input[name="auctionReservePrice"], input[name="quantity"]'));
-            priceInputs.forEach(inp => {
-              const labelEl = inp.closest('.se-field')?.querySelector('.field__label, label');
-              const label = labelEl ? (labelEl.textContent || '').trim() : inp.name;
-              allFields.push({
-                id: inp.id || ('price-' + inp.name),
-                name: inp.name,
-                label: label,
-                type: 'text',
-                section: 'Pricing',
-                required: inp.required || inp.getAttribute('aria-required') === 'true',
-                currentValue: inp.value || '',
-                selector: 'input[name="' + inp.name + '"]'
-              });
-            });
           }
 
-          // 6. Shipping (DomesticShippingType, Weights, Dimensions)
+          // 6. Shipping (DomesticShippingType master dropdown only - subfields dynamically extracted in shippingStep)
           const shippingContainer = document.querySelector('.summary__shipping, [class*="summary__shipping"]');
           if (shippingContainer) {
-            const shipInputs = Array.from(shippingContainer.querySelectorAll('input[name="majorWeight"], input[name="minorWeight"], input[name="packageLength"], input[name="packageWidth"], input[name="packageDepth"]'));
-            shipInputs.forEach(inp => {
+            const shipMethodBtn = shippingContainer.querySelector('button[aria-labelledby*="domesticShippingType"], .summary__shipping--field button');
+            const shipNativeSelect = shippingContainer.querySelector('select[name="domesticShippingType"]');
+            if (shipMethodBtn || shipNativeSelect) {
               allFields.push({
-                id: inp.id || ('shipping-' + inp.name),
-                name: inp.name,
-                label: inp.getAttribute('aria-label') || inp.name,
-                type: 'text',
+                id: shipNativeSelect?.id || shipMethodBtn?.id || 'domesticShippingType',
+                name: 'domesticShippingType',
+                label: 'Shipping method',
+                type: 'select',
                 section: 'Shipping',
-                required: false,
-                currentValue: inp.value || '',
-                selector: 'input[name="' + inp.name + '"]'
+                required: true,
+                currentValue: (shipMethodBtn?.querySelector('.btn__text')?.textContent || shipNativeSelect?.value || '').trim(),
+                options: [
+                  'Standard shipping: Small to medium items',
+                  'Freight: Large items that require special handling',
+                  'No shipping. Local pickup only'
+                ],
+                selector: 'button[aria-labelledby*="domesticShippingType"], .summary__shipping--field button, select[name="domesticShippingType"]'
               });
-            });
+            }
           }
 
-          // 7. Generic fallback for any uncaptured form controls inside .smry or form
+          // 7. Generic fallback for any uncaptured form controls (skipping pricing & shipping dynamic sections)
           const remainingControls = Array.from(document.querySelectorAll('input[name], select[name], textarea[name]'));
           remainingControls.forEach(ctrl => {
             const name = ctrl.getAttribute('name');
             if (!name || name.startsWith('search-box-') || name.endsWith('-hidden') || allFields.some(f => f.name === name)) return;
+            if (ctrl.closest('.summary__price, [class*="summary__price"], .summary__shipping, [class*="summary__shipping"]')) return;
+
             const labelEl = ctrl.closest('.se-field')?.querySelector('.field__label, label');
             const label = labelEl ? (labelEl.textContent || '').trim() : name;
             allFields.push({
@@ -220,14 +197,177 @@ export async function extractFormSchema(debuggee: chrome.debugger.Debuggee): Pro
 
     // Save extracted schema into chrome.storage.local via storageService
     await saveFormSchema(schemaData);
-
-    console.log('================ FORM SCHEMA EXTRACTED & SAVED TO STORAGE ================');
     console.log(JSON.stringify(schemaData, null, 2));
-    console.log('==========================================================================');
 
     return schemaData;
   } catch (err) {
     console.error('[Schema Extractor] Failed to extract form schema:', err);
     return null;
+  }
+}
+
+/**
+ * Re-extracts only the pricing section subfields currently present in the DOM.
+ * Call this after changing the format master dropdown.
+ */
+export async function extractPricingFields(debuggee: chrome.debugger.Debuggee): Promise<FormFieldSchema[]> {
+  console.log('[Schema Extractor] Re-extracting Pricing sub-fields from DOM...');
+  try {
+    const res = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
+      expression: `
+        (function() {
+          const fields = [];
+          const container = document.querySelector('.summary__price, [class*="summary__price"]');
+          if (!container) return JSON.stringify(fields);
+
+          // 1. Format
+          const formatBtn = container.querySelector('.format button, button[aria-labelledby*="format"]');
+          const formatNativeSelect = container.querySelector('select[name="format"]');
+          if (formatBtn || formatNativeSelect) {
+            fields.push({
+              id: formatBtn?.id || formatNativeSelect?.id || 'format',
+              name: 'format',
+              label: 'Format',
+              type: 'select',
+              section: 'Pricing',
+              required: true,
+              currentValue: (formatBtn?.querySelector('.btn__text')?.textContent || formatNativeSelect?.value || '').trim(),
+              options: ['Auction', 'Buy It Now'],
+              selector: '.format button, select[name="format"], button[aria-labelledby*="format"]'
+            });
+          }
+
+          // 2. Duration (in Auction format)
+          const durationBtn = container.querySelector('button[aria-labelledby*="duration"]');
+          const durationSelect = container.querySelector('select[name="duration"]');
+          if (durationBtn || durationSelect) {
+            fields.push({
+              id: durationBtn?.id || durationSelect?.id || 'duration',
+              name: 'duration',
+              label: 'Auction duration',
+              type: 'select',
+              section: 'Pricing',
+              required: false,
+              currentValue: (durationBtn?.querySelector('.btn__text')?.textContent || durationSelect?.value || '').trim(),
+              options: ['3 days', '5 days', '7 days', '10 days'],
+              selector: 'button[aria-labelledby*="duration"], select[name="duration"]'
+            });
+          }
+
+          // 3. Price inputs: startPrice, price, auctionReservePrice, quantity
+          const inputs = Array.from(container.querySelectorAll('input[name="startPrice"], input[name="price"], input[name="auctionReservePrice"], input[name="quantity"]'));
+          inputs.forEach(inp => {
+            const labelEl = inp.closest('.se-field')?.querySelector('.field__label, label');
+            const label = labelEl ? (labelEl.textContent || '').trim() : inp.name;
+            fields.push({
+              id: inp.id || ('price-' + inp.name),
+              name: inp.name,
+              label: label,
+              type: 'text',
+              section: 'Pricing',
+              required: inp.required || inp.getAttribute('aria-required') === 'true',
+              currentValue: inp.value || '',
+              selector: 'input[name="' + inp.name + '"]'
+            });
+          });
+
+          // 4. Checkboxes: immediatePay, bestOfferEnabled
+          const checkboxes = Array.from(container.querySelectorAll('input[name="immediatePay"], input[name="bestOfferEnabled"]'));
+          checkboxes.forEach(cb => {
+            const labelEl = cb.closest('.se-field, .se-checkbox')?.querySelector('.field__label, label');
+            const label = labelEl ? (labelEl.textContent || '').trim() : cb.name;
+            fields.push({
+              id: cb.id || cb.name,
+              name: cb.name,
+              label: label,
+              type: 'checkbox',
+              section: 'Pricing',
+              required: false,
+              currentValue: cb.checked ? 'true' : 'false',
+              selector: 'input[name="' + cb.name + '"]'
+            });
+          });
+
+          return JSON.stringify(fields);
+        })()
+      `,
+      returnByValue: true
+    }) as { result?: { value?: string } };
+
+    if (!res.result?.value) return [];
+    const fields: FormFieldSchema[] = JSON.parse(res.result.value);
+    console.log(`[Schema Extractor] Extracted ${fields.length} Pricing fields:`, fields.map(f => f.name));
+    return fields;
+  } catch (err) {
+    console.error('[Schema Extractor] Failed to re-extract pricing fields:', err);
+    return [];
+  }
+}
+
+/**
+ * Re-extracts only the shipping section subfields currently present in the DOM.
+ * Call this after changing the shipping method master dropdown.
+ */
+export async function extractShippingFields(debuggee: chrome.debugger.Debuggee): Promise<FormFieldSchema[]> {
+  console.log('[Schema Extractor] Re-extracting Shipping sub-fields from DOM...');
+  try {
+    const res = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
+      expression: `
+        (function() {
+          const fields = [];
+          const container = document.querySelector('.summary__shipping, [class*="summary__shipping"]');
+          if (!container) return JSON.stringify(fields);
+
+          // 1. Master shipping method
+          const shipMethodBtn = container.querySelector('button[aria-labelledby*="domesticShippingType"], .summary__shipping--field button');
+          const shipNativeSelect = container.querySelector('select[name="domesticShippingType"]');
+          if (shipMethodBtn || shipNativeSelect) {
+            fields.push({
+              id: shipNativeSelect?.id || shipMethodBtn?.id || 'domesticShippingType',
+              name: 'domesticShippingType',
+              label: 'Shipping method',
+              type: 'select',
+              section: 'Shipping',
+              required: true,
+              currentValue: (shipMethodBtn?.querySelector('.btn__text')?.textContent || shipNativeSelect?.value || '').trim(),
+              options: [
+                'Standard shipping: Small to medium items',
+                'Freight: Large items that require special handling',
+                'No shipping. Local pickup only'
+              ],
+              selector: 'button[aria-labelledby*="domesticShippingType"], .summary__shipping--field button, select[name="domesticShippingType"]'
+            });
+          }
+
+          // 2. Package Details: majorWeight, minorWeight, packageLength, packageWidth, packageDepth
+          const shipInputs = Array.from(container.querySelectorAll('input[name="majorWeight"], input[name="minorWeight"], input[name="packageLength"], input[name="packageWidth"], input[name="packageDepth"]'));
+          shipInputs.forEach(inp => {
+            const labelEl = inp.closest('.se-field')?.querySelector('.field__label, label');
+            const label = inp.getAttribute('aria-label') || (labelEl ? (labelEl.textContent || '').trim() : inp.name);
+            fields.push({
+              id: inp.id || ('shipping-' + inp.name),
+              name: inp.name,
+              label: label,
+              type: 'text',
+              section: 'Shipping',
+              required: false,
+              currentValue: inp.value || '',
+              selector: 'input[name="' + inp.name + '"]'
+            });
+          });
+
+          return JSON.stringify(fields);
+        })()
+      `,
+      returnByValue: true
+    }) as { result?: { value?: string } };
+
+    if (!res.result?.value) return [];
+    const fields: FormFieldSchema[] = JSON.parse(res.result.value);
+    console.log(`[Schema Extractor] Extracted ${fields.length} Shipping fields:`, fields.map(f => f.name));
+    return fields;
+  } catch (err) {
+    console.error('[Schema Extractor] Failed to re-extract shipping fields:', err);
+    return [];
   }
 }

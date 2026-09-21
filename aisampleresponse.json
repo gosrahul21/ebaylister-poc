@@ -1,0 +1,411 @@
+{
+  "fieldValues": [
+    {
+      "name": "title",
+      "id": "title",
+      "label": "Item title",
+      "value": "Crayola 36 Ct Colored Pencils Set for Kids Adults Art School Supplies Non-Toxic"
+    },
+    {
+      "name": "categoryId",
+      "id": "categoryId",
+      "label": "Item category",
+      "value": "Art Pencils & Charcoal (in Crafts > Art Supplies > Drawing & Lettering Supplies)"
+    },
+    {
+      "name": "attributes.Brand",
+      "id": "attributes.Brand",
+      "label": "Brand",
+      "value": "Crayola"
+    },
+    {
+      "name": "attributes.Color",
+      "id": "attributes.Color",
+      "label": "Color",
+      "value": "Multicolor"
+    },
+    {
+      "name": "attributes.Unit Quantity",
+      "id": "attributes.Unit Quantity",
+      "label": "Unit Quantity",
+      "value": "36"
+    },
+    {
+      "name": "attributes.Unit Type",
+      "id": "attributes.Unit Type",
+      "label": "Unit Type",
+      "value": "Unit"
+    },
+    {
+      "name": "condition",
+      "id": "condition",
+      "label": "Item condition",
+      "value": "New"
+    },
+    {
+      "name": "format",
+      "id": "format",
+      "label": "Format",
+      "value": "Buy It Now"
+    },
+    {
+      "name": "domesticShippingType",
+      "id": "domesticShippingType",
+      "label": "Shipping method",
+      "value": "Standard shipping: Small to medium items"
+    },
+    {
+      "name": "photoUploadMobilePref",
+      "id": "photoUploadMobilePref",
+      "label": "Upload photos from mobile",
+      "value": "on"
+    },
+    {
+      "name": "photoUploadWebPref",
+      "id": "photoUploadWebPref",
+      "label": "Upload photos from web",
+      "value": "on"
+    },
+    {
+      "name": "galleryPlusPref",
+      "id": "galleryPlusPref",
+      "label": "Gallery Plus",
+      "value": "on"
+    },
+    {
+      "name": "boldTitlePref",
+      "id": "boldTitlePref",
+      "label": "Bold title",
+      "value": "on"
+    },
+    {
+      "name": "subtitlePref",
+      "id": "subtitlePref",
+      "label": "Subtitle",
+      "value": "on"
+    },
+    {
+      "name": "customLabelPref",
+      "id": "customLabelPref",
+      "label": "Custom label (SKU)",
+      "value": "on"
+    },
+    {
+      "name": "attributes.California Prop 65 Warning",
+      "id": "attributes.California Prop 65 Warning",
+      "label": "attributes.California Prop 65 Warning",
+      "value": ""
+    },
+    {
+      "name": "description",
+      "id": "description",
+      "label": "description",
+      "value": "Dive into a world of color with this bulk set of 36 Crayola Colored Pencils. Each pencil is a portal to a spectrum of creativity, transforming blank canvases into vibrant masterpieces. These pencils are more than just coloring tools, they’re catalysts for artistic growth, perfect for nurturing creativity and self-expression in young artists. As the back-to-school season approaches, these colored pencils become an essential part of kids’ school supplies. They enhance educational and creative activities, making learning more colorful and fun. Designed to glide smoothly across the page, these pencils bring coloring books to life, adding a touch of magic to every stroke. Crayola Colored Pencils are also a hit among teachers, making an excellent addition to classroom art supplies. They bring excitement to art sessions and spark creativity among students. Each color in the pack inspires children, helping them grow artistically and expressively. The pencils are presharpened & durable, with soft cores that won’t break easily. They’re ready for use right out of the box, making them a practical choice for young creators. Give this set as a creative gift for kids, and turn every coloring session into a delightful exploration of creativity! Safe and nontoxic, they’re great for kids ages 3 and up! Let’s transform every coloring session into a journey of imagination and fun with these essential art tools! Crayola back to school essentials make learning colorful—perfect for classrooms, homeschool, and creative kids.\n\n**Key Features:**\n*   **36 CRAYOLA COLORED PENCILS:** Explore a spectrum of color with 36 distinct colored pencils that transform artwork into vibrant masterpieces.\n*   **KIDS ART SUPPLIES:** Ignite your child’s artistic potential with this vibrant set of Crayola Colored Pencils. Perfect for nurturing creativity and self-expression.\n*   **BACK TO SCHOOL SUPPLIES:** Enhance educational and creative activities with these essential kids' pencils for school.\n*   **IDEAL FOR COLORING BOOKS:** Designed to glide smoothly across the page, these pencils bring coloring books to life.\n*   **CLASSROOM SUPPLIES:** Stock up on bulk colored pencils for classroom activities, enhancing group projects, and making learning more colorful and fun.\n*   **PRESHARPENED & DURABLE:** Soft cores won't break easily, and presharpened tips are ready for use right out of the box.\n*   **GIFT FOR KIDS & ADULTS:** A fun and colorful gift for grandkids, kids, teens, and adults—perfect for birthdays, creative hobbies, or anytime you want to brighten someone’s day."
+    },
+    {
+      "name": "Toggle General",
+      "id": "Toggle General",
+      "label": "Toggle General",
+      "value": "on"
+    }
+  ]
+}
+
+
+
+
+{
+  "url": "https://www.ebay.com/lstng?draftId=5205662848402&mode=AddItem",
+  "extractedAt": 1789933889389,
+  "totalFieldsCount": 18,
+  "allFields": [
+    {
+      "id": "s0-1-0-25-15-@TITLE-5-34-6-4-se-textbox",
+      "name": "title",
+      "label": "Item title",
+      "type": "text",
+      "section": "Title",
+      "required": true,
+      "currentValue": "Colored Pencils",
+      "maxLength": 80,
+      "selector": "input[name=\"title\"]"
+    },
+    {
+      "id": "categoryId",
+      "name": "categoryId",
+      "label": "Item category",
+      "type": "text",
+      "section": "Item category",
+      "required": true,
+      "currentValue": "Art Pencils & Charcoal (in Crafts > Art Supplies > Drawing & Lettering Supplies)",
+      "selector": "button[name=\"categoryId\"]"
+    },
+    {
+      "id": "attr-attributes.Brand",
+      "name": "attributes.Brand",
+      "label": "Brand",
+      "type": "dropdown",
+      "section": "Item specifics",
+      "subsection": "Essential",
+      "required": false,
+      "currentValue": "",
+      "options": [
+        "ALEX",
+        "AMACO",
+        "Art Alternatives",
+        "Arteza",
+        "Artist's Loft",
+        "Artline",
+        "ArtSkills",
+        "Atlas",
+        "BabyRice",
+        "Bendon",
+        "Berol",
+        "Blick",
+        "Caran d'Ache",
+        "Case",
+        "Charles Leonard",
+        "Chronicle Books",
+        "Claire Murray",
+        "C-LineC to Line",
+        "C to Line",
+        "Colleen",
+        "Conté",
+        "Crafter's Companion",
+        "CraftSmart",
+        "Crayola",
+        "CRA-Z-ARTCRA to Z",
+        "CRA to Z",
+        "Creative Teaching Press",
+        "Creativity for Kids",
+        "Cretacolor",
+        "Daiso",
+        "Daler-RowneyDaler to Rowney",
+        "Daler to Rowney",
+        "Darice",
+        "Derwent",
+        "Design Originals",
+        "Diamond",
+        "Discovery Kids",
+        "Disney",
+        "Dixon",
+        "Dixon Ticonderoga",
+        "Dover",
+        "Dragonfly",
+        "Eagle",
+        "Eberhard Faber",
+        "Empire",
+        "FABER",
+        "Faber-CastellFaber to Castell",
+        "Faber to Castell",
+        "Fantasia",
+        "Finetec",
+        "Fuji",
+        "Gallery",
+        "General's",
+        "Gingher"
+      ],
+      "allowCustomValue": true,
+      "selector": "button[name=\"attributes.Brand\"]"
+    },
+    {
+      "id": "attr-attributes.Color",
+      "name": "attributes.Color",
+      "label": "Color",
+      "type": "dropdown",
+      "section": "Item specifics",
+      "subsection": "Essential",
+      "required": false,
+      "currentValue": "",
+      "options": [
+        "Beige",
+        "Black",
+        "Blue",
+        "Brown",
+        "Clear",
+        "Gold",
+        "Gray",
+        "Green",
+        "Multicolor",
+        "Orange",
+        "Pink",
+        "Purple",
+        "Red",
+        "Silver",
+        "White",
+        "Yellow"
+      ],
+      "allowCustomValue": true,
+      "selector": "button[name=\"attributes.Color\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@ATTRIBUTES-1-34-4-27[1[OPTIONAL]]-4-se-textbox",
+      "name": "attributes.Unit Quantity",
+      "label": "Unit Quantity",
+      "type": "text",
+      "section": "Item specifics",
+      "subsection": "Optional",
+      "required": false,
+      "currentValue": "",
+      "placeholder": "Enter your own",
+      "selector": "input[name=\"attributes.Unit Quantity\"]"
+    },
+    {
+      "id": "attr-attributes.Unit Type",
+      "name": "attributes.Unit Type",
+      "label": "Unit Type",
+      "type": "dropdown",
+      "section": "Item specifics",
+      "subsection": "Optional",
+      "required": false,
+      "currentValue": "",
+      "options": [
+        "Unit",
+        "oz",
+        "lb",
+        "fl oz",
+        "gal",
+        "ft",
+        "ft²",
+        "ft³"
+      ],
+      "allowCustomValue": true,
+      "selector": "button[name=\"attributes.Unit Type\"]"
+    },
+    {
+      "id": "summary-condition-field-value",
+      "name": "condition",
+      "label": "Item condition",
+      "type": "dropdown",
+      "section": "Condition",
+      "required": true,
+      "currentValue": "New",
+      "selector": "button[name=\"condition\"], #summary-condition-field-value"
+    },
+    {
+      "id": "format",
+      "name": "format",
+      "label": "Format",
+      "type": "select",
+      "section": "Pricing",
+      "required": true,
+      "currentValue": "Auction",
+      "options": [
+        "Auction",
+        "Buy It Now"
+      ],
+      "selector": ".format button, select[name=\"format\"], button[aria-labelledby*=\"format\"]"
+    },
+    {
+      "id": "domesticShippingType",
+      "name": "domesticShippingType",
+      "label": "Shipping method",
+      "type": "select",
+      "section": "Shipping",
+      "required": true,
+      "currentValue": "Standard shipping: Small to medium items",
+      "options": [
+        "Standard shipping: Small to medium items",
+        "Freight: Large items that require special handling",
+        "No shipping. Local pickup only"
+      ],
+      "selector": "button[aria-labelledby*=\"domesticShippingType\"], .summary__shipping--field button, select[name=\"domesticShippingType\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@PHOTOS-1-22-6-0-36-5-9-14[0]-se-switch",
+      "name": "photoUploadMobilePref",
+      "label": "Upload photos from mobile",
+      "type": "checkbox",
+      "section": "General",
+      "required": false,
+      "currentValue": "on",
+      "selector": "[name=\"photoUploadMobilePref\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@PHOTOS-1-22-6-0-36-5-9-14[1]-se-switch",
+      "name": "photoUploadWebPref",
+      "label": "Upload photos from web",
+      "type": "checkbox",
+      "section": "General",
+      "required": false,
+      "currentValue": "on",
+      "selector": "[name=\"photoUploadWebPref\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@PHOTOS-1-22-6-0-36-5-9-14[2]-se-switch",
+      "name": "galleryPlusPref",
+      "label": "Gallery Plus",
+      "type": "checkbox",
+      "section": "General",
+      "required": false,
+      "currentValue": "on",
+      "selector": "[name=\"galleryPlusPref\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@TITLE-5-22-6-0-36-5-9-14[0]-se-switch",
+      "name": "boldTitlePref",
+      "label": "Bold title",
+      "type": "checkbox",
+      "section": "General",
+      "required": false,
+      "currentValue": "on",
+      "selector": "[name=\"boldTitlePref\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@TITLE-5-22-6-0-36-5-9-14[1]-se-switch",
+      "name": "subtitlePref",
+      "label": "Subtitle",
+      "type": "checkbox",
+      "section": "General",
+      "required": false,
+      "currentValue": "on",
+      "selector": "[name=\"subtitlePref\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@TITLE-5-22-6-0-36-5-9-14[2]-se-switch",
+      "name": "customLabelPref",
+      "label": "Custom label (SKU)",
+      "type": "checkbox",
+      "section": "General",
+      "required": false,
+      "currentValue": "on",
+      "selector": "[name=\"customLabelPref\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@ATTRIBUTES-1-34-4-27[3[OPTIONAL]]-4-se-textarea",
+      "name": "attributes.California Prop 65 Warning",
+      "label": "attributes.California Prop 65 Warning",
+      "type": "textarea",
+      "section": "General",
+      "required": false,
+      "currentValue": "",
+      "selector": "[name=\"attributes.California Prop 65 Warning\"]"
+    },
+    {
+      "id": "s0-1-0-25-15-@DESCRIPTION-1-34-@rich-text-editor-rawEditor",
+      "name": "description",
+      "label": "description",
+      "type": "textarea",
+      "section": "General",
+      "required": false,
+      "currentValue": "",
+      "selector": "[name=\"description\"]"
+    },
+    {
+      "id": "ctrl-Toggle General",
+      "name": "Toggle General",
+      "label": "Toggle General",
+      "type": "checkbox",
+      "section": "General",
+      "required": false,
+      "currentValue": "on",
+      "selector": "[name=\"Toggle General\"]"
+    }
+  ]
+
+
+
+
+
+
+

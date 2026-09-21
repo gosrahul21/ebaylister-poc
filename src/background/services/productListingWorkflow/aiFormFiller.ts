@@ -29,10 +29,13 @@ export async function fillAiFormFields(
   const schemaFieldMap = new Map(formSchema.allFields.map(f => [f.name, f]));
 
   for (const fieldValue of aiFieldValues) {
-    if (fieldValue.name === 'title') continue;
+    if (fieldValue.name === 'title' || fieldValue.name === 'categoryId'||  fieldValue.name === 'condition') continue;
 
     const schemaField = schemaFieldMap.get(fieldValue.name);
     if (!schemaField || !fieldValue.value) continue;
+
+    // Skip Pricing and Shipping sections as they are handled dynamically with their own steps
+    if (schemaField.section === 'Pricing' || schemaField.section === 'Shipping' || schemaField.section === 'Category') continue;
 
     const value = fieldValue.value.trim();
     console.log(`[CDP eBay Automator] Step 4c - Filling field "${fieldValue.name}" (${schemaField.type}) with value: "${value}"`);
