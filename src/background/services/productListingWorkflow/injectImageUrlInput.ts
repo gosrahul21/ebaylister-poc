@@ -3,6 +3,10 @@ import { moveCursorAndClick } from '@/background/helper/moveCursorAndClick';
 import { cdpInjectHumanValue } from '@/background/helper/cdpInjectHumanValue';
 import { getTargetElementPosition } from '@/background/helper/getTargetElementPosition';
 import { getElementCoords, dispatchClick } from '../cdpHelper';
+import {
+  buildCheckUrlRowExistsScript,
+  buildTargetInputCoordinatesScript
+} from '../../injectors';
 
 export interface ImageInputTargetInfo {
   found: boolean;
@@ -28,39 +32,7 @@ export async function checkUrlRowExists(
   index: number
 ): Promise<boolean> {
   const checkRes = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
-    expression: `
-      (function() {
-        const idx = ${index};
-        const modal = document.querySelector('#url-import-title')?.closest('.lightbox-dialog, .se-panel-container')
-          || document.querySelector('.lightbox-dialog:not([hidden]) .se-panel-container')
-          || document.querySelector('.lightbox-dialog:not([hidden])')
-          || document;
-
-        const checkRoot = (root) => {
-          // 1. By .url-row elements
-          const urlRows = Array.from(root.querySelectorAll('.url-row'));
-          if (urlRows[idx]) return true;
-
-          // 2. By exact label "URL {idx + 1}"
-          const labels = Array.from(root.querySelectorAll('.floating-label label, .url-row label, label'));
-          if (labels.some(l => (l.textContent || '').trim() === 'URL ' + (idx + 1))) return true;
-
-          // 3. By ID pattern matching [idx]
-          const allInputs = Array.from(root.querySelectorAll('input'));
-          if (allInputs.some(inp => inp.id && (
-            inp.id.includes('[' + idx + ']-se-textbox') ||
-            (inp.id.includes('@PHOTOS') && inp.id.includes('[' + idx + ']'))
-          ))) return true;
-
-          // 4. By inputs in modal body
-          const panelBody = (root.querySelector && root.querySelector('.se-panel-container__body, .se-panel-section')) || root;
-          const bodyInputs = Array.from(panelBody.querySelectorAll('input[type="text"], input.textbox__control, input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"])'));
-          return Boolean(bodyInputs[idx]);
-        };
-
-        return checkRoot(modal) || (modal !== document ? checkRoot(document) : false);
-      })()
-    `,
+    expression: buildCheckUrlRowExistsScript(index),
     returnByValue: true
   }) as { result?: { value?: boolean } };
 
@@ -151,87 +123,7 @@ export async function getImageInputTargetInfo(
   index: number
 ): Promise<ImageInputTargetInfo> {
   const evalRes = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
-    expression: `
-      (function() {
-        const idx = ${index};
-        const modal = document.querySelector('#url-import-title')?.closest('.lightbox-dialog, .se-panel-container')
-          || document.querySelector('.lightbox-dialog:not([hidden]) .se-panel-container')
-          || document.querySelector('.lightbox-dialog:not([hidden])')
-          || document;
-
-        const findInRoot = (root) => {
-          // Strategy 1: Find by .url-row container at index
-          const urlRows = Array.from(root.querySelectorAll('.url-row'));
-          if (urlRows[idx]) {
-            const inp = urlRows[idx].querySelector('input.textbox__control, .se-textbox--input input, input[type="text"], input');
-            if (inp) return inp;
-          }
-
-          // Strategy 2: Find by exact label "URL {idx + 1}"
-          const labels = Array.from(root.querySelectorAll('.floating-label label, .url-row label, label'));
-          const targetLabel = labels.find(l => {
-            const text = (l.textContent || '').trim();
-            return text === 'URL ' + (idx + 1) || text.startsWith('URL ' + (idx + 1));
-          });
-          if (targetLabel) {
-            if (targetLabel.getAttribute('for')) {
-              const byFor = document.getElementById(targetLabel.getAttribute('for'));
-              if (byFor) return byFor;
-            }
-            const row = targetLabel.closest('.url-row, .floating-label, .se-textbox--container');
-            if (row) {
-              const inp = row.querySelector('input');
-              if (inp) return inp;
-            }
-          }
-
-          // Strategy 3: Find by ID pattern matching eBay uploader convention:
-          // e.g. s0-1-0-25-15-@PHOTOS-...-@uploader-...-@dialog-...[idx]-se-textbox
-          const allInputs = Array.from(root.querySelectorAll('input'));
-          const byId = allInputs.find(inp => inp.id && (
-            inp.id.includes('[' + idx + ']-se-textbox') ||
-            (inp.id.includes('@PHOTOS') && inp.id.includes('[' + idx + ']'))
-          ));
-          if (byId) return byId;
-
-          // Strategy 4: Fallback to all visible text inputs inside container
-          const inputs = Array.from(root.querySelectorAll('.url-row input.textbox__control, .url-row input, input.textbox__control, input[type="text"]'));
-          const visibleInputs = inputs.filter(inp => {
-            const style = window.getComputedStyle(inp);
-            const rect = inp.getBoundingClientRect();
-            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-          });
-          if (visibleInputs[idx]) return visibleInputs[idx];
-
-          return null;
-        };
-
-        let targetInput = findInRoot(modal) || (modal !== document ? findInRoot(document) : null);
-
-        if (!targetInput) {
-          return JSON.stringify({ found: false, error: 'Target input for URL ' + (idx + 1) + ' not found' });
-        }
-
-        // Scroll into view
-        targetInput.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
-        const rect = targetInput.getBoundingClientRect();
-
-        // Calculate a safe randomized coordinate strictly inside the element boundaries
-        // Use 15% inner padding to prevent clicking on borders or outside the element
-        const paddingX = Math.max(6, Math.min(rect.width * 0.15, 24));
-        const paddingY = Math.max(4, Math.min(rect.height * 0.2, 8));
-        const randomX = Math.round(rect.left + paddingX + Math.random() * (rect.width - 2 * paddingX));
-        const randomY = Math.round(rect.top + paddingY + Math.random() * (rect.height - 2 * paddingY));
-
-        return JSON.stringify({
-          found: true,
-          randomPos: { x: randomX, y: randomY },
-          id: targetInput.id || '',
-          index: idx,
-          dimensions: { width: Math.round(rect.width), height: Math.round(rect.height) }
-        });
-      })()
-    `,
+    expression: buildTargetInputCoordinatesScript(index),
     returnByValue: true
   }) as { result?: { value?: string } };
   console.log({evalRes});

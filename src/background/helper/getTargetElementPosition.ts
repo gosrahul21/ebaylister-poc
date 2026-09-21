@@ -1,4 +1,5 @@
 import { Position } from './moveCursorToTargetElement';
+import { buildTargetElementPositionScript } from '../injectors';
 
 export interface TargetElementPosition {
   found: boolean;
@@ -13,20 +14,20 @@ export interface TargetElementPosition {
 }
 
 export interface GetTargetPositionOptions {
-  paddingRatioX?: number;
-  paddingRatioY?: number;
-  maxPaddingX?: number;
-  maxPaddingY?: number;
+  paddingRatioX?: number; // 0.15 = 15% inner padding from left/right edges
+  paddingRatioY?: number; // 0.20 = 20% inner padding from top/bottom edges
+  maxPaddingX?: number;   // default max inner padding 20px
+  maxPaddingY?: number;   // default max inner padding 10px
 }
 
 /**
- * Reusable helper that locates a target element in the DOM by selector, ID, or text,
- * scrolls it into view, and calculates a randomized (x, y) coordinate strictly inside
- * the element's bounding box with inner padding to ensure reliable, human-like clicks.
+ * Reusable function that evaluates the page DOM via CDP to find an element,
+ * scroll it into view, and calculate safe inner coordinates.
  *
  * Supports:
- *  - Raw IDs (even with special characters like '@' or '[' / ']')
- *  - CSS selectors (including comma-separated lists)
+ *  - Raw IDs (e.g. "gh-btn" or "#gh-btn")
+ *  - Standard CSS selectors (e.g. 'button.btn--primary')
+ *  - Comma-separated fallback candidates (tried sequentially)
  *  - "text:<search text>" queries for finding elements by visible label/content
  *
  * @param debuggee - Active chrome.debugger instance
@@ -47,67 +48,7 @@ export async function getTargetElementPosition(
 
   try {
     const evalRes = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
-      expression: `
-        (function() {
-          const rawTarget = ${JSON.stringify(targetString)};
-          const selectors = rawTarget.split(',').map(s => s.trim()).filter(Boolean);
-          let el = null;
-
-          for (const s of selectors) {
-            // 1. Try finding by exact ID (stripping leading '#' if present)
-            const idToTry = s.startsWith('#') ? s.slice(1) : s;
-            el = document.getElementById(idToTry);
-            if (el) break;
-
-            // 2. Try text search (syntax: text:<content>)
-            if (s.startsWith('text:')) {
-              const searchText = s.slice(5).trim().toLowerCase();
-              const allElements = Array.from(document.querySelectorAll('button, a, [role="button"], label, input, span, div'));
-              el = allElements.find(b => {
-                const txt = (b.textContent || b.getAttribute('aria-label') || '').trim().toLowerCase();
-                return txt.includes(searchText);
-              });
-              if (el) break;
-            }
-
-            // 3. Try standard querySelector with error protection (handles special characters gracefully)
-            try {
-              el = document.querySelector(s);
-            } catch (err) {
-              // Ignore invalid selector syntax and continue to next fallback
-            }
-            if (el) break;
-          }
-
-          if (!el) {
-            return JSON.stringify({ found: false, error: 'Target element not found: ' + rawTarget });
-          }
-
-          // Scroll into view to ensure coordinates match the current viewport
-          el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
-          const rect = el.getBoundingClientRect();
-
-          if (rect.width === 0 && rect.height === 0) {
-            return JSON.stringify({ found: false, error: 'Target element is hidden or has zero dimensions' });
-          }
-
-          // Calculate safe randomized coordinates strictly within element bounds
-          const padX = Math.max(6, Math.min(rect.width * ${padRatioX}, ${maxPadX}));
-          const padY = Math.max(4, Math.min(rect.height * ${padRatioY}, ${maxPadY}));
-          const randX = Math.round(rect.left + padX + Math.random() * Math.max(1, rect.width - 2 * padX));
-          const randY = Math.round(rect.top + padY + Math.random() * Math.max(1, rect.height - 2 * padY));
-
-          return JSON.stringify({
-            found: true,
-            x: randX,
-            y: randY,
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-            id: el.id || '',
-            tagName: el.tagName.toLowerCase()
-          });
-        })()
-      `,
+      expression: buildTargetElementPositionScript(targetString, padRatioX, padRatioY, maxPadX, maxPadY),
       returnByValue: true
     }) as { result?: { value?: string }; exceptionDetails?: { text?: string } };
 

@@ -1,5 +1,5 @@
 import { generateHumanPath } from '@/utils/bezier';
-import { dispatchMouseMove } from '../services/cdpHelper';
+import { dispatchMouseMove } from './dispatchMouseMove';
 
 export interface Position {
   x: number;

@@ -1,6 +1,6 @@
 import { Position } from './moveCursorToTargetElement';
 import { getTargetElementPosition, GetTargetPositionOptions } from './getTargetElementPosition';
-import { dispatchClick } from '../services/cdpHelper';
+import { dispatchClick } from './dispatchClick';
 
 export interface CdpClickOptions extends GetTargetPositionOptions {
   postClickDelayMs?: number;

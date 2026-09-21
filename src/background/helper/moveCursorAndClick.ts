@@ -1,9 +1,8 @@
 import { moveCursorToTargetElement, Position } from './moveCursorToTargetElement';
-import { dispatchClick } from '../services/cdpHelper';
+import { dispatchClick } from './dispatchClick';
 
 /**
- * Clubbed reusable function that moves the mouse cursor to a target position
- * using a human Bezier curve, clicks the target coordinates, and returns the updated position.
+ * Move cursor to the target element from current element and click
  *
  * @param currentPos - Starting position {x, y}
  * @param targetPos - Target position {x, y} to navigate to and click

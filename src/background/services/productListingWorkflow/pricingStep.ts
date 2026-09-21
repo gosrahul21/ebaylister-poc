@@ -4,6 +4,7 @@ import { generatePricingValues, PricingAiResult } from '../../../apis/gemini';
 import { extractPricingFields } from '../schemaExtractor';
 import { fillListboxOption } from './listboxHelper';
 import { fillInputField } from './formFieldHandlers';
+import { buildImmediatePaymentCheckboxScript } from '../../injectors';
 
 const FORMAT_BUTTON_SELECTOR = '.format button.listbox-button__control, button[aria-labelledby*="format"], .summary__price .format button';
 const DURATION_BUTTON_SELECTOR = 'button[aria-labelledby*="duration"], .summary__price button[aria-labelledby*="duration"]';
@@ -111,15 +112,7 @@ export async function executePricingStep(
     if (pricingPlan.immediatePay && fieldMap.has('immediatePay')) {
       console.log('[Pricing Step] Ensuring "Require immediate payment" checkbox is checked');
       await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
-        expression: `
-          (function() {
-            const cb = document.querySelector('input[name="immediatePay"]');
-            if (cb && !cb.checked) {
-              cb.click();
-              cb.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          })()
-        `
+        expression: buildImmediatePaymentCheckboxScript()
       });
     }
   }
