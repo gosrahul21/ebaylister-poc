@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     auctionSettingsGroup
   });
 
-  // ── 1. Load & Render Saved Products ──────────────────────────────────────
   function updateUI(): void {
     getSavedProducts(products => {
       allProducts = products;
@@ -82,12 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── 2. Check Active Tab & Enable Save Action ─────────────────────────────
   checkActiveTabAndScrapeProduct(bannerUI, scrapedProduct => {
     activeProductToSave = scrapedProduct;
   });
 
-  // ── 3. Save Current Product Listener ─────────────────────────────────────
   saveCurrentBtn.addEventListener('click', () => {
     if (!activeProductToSave) return;
 
@@ -106,7 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── 4. Search Filter Listener ───────────────────────────────────────────
   searchInput.addEventListener('input', () => {
     renderProductsList(productsList, filterProducts(allProducts, searchInput.value.trim()), {
       onViewProduct: openProductModal,
@@ -114,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── 5. Clear All & Export JSON Listeners ─────────────────────────────────
   clearAllBtn.addEventListener('click', () => {
     if (allProducts.length === 0) return;
     if (confirm('Are you sure you want to delete ALL saved Amazon products?')) {

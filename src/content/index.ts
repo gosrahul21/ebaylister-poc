@@ -4,7 +4,6 @@ import { extractAmazonProductDetails } from './helpers/extractAmazonProductDetai
 const ACTION_SAVE_PRODUCT = 'SAVE_AMAZON_PRODUCT';
 const ACTION_SCRAPE_PRODUCT = 'SCRAPE_AMAZON_PRODUCT';
 
-// ── Floating Page Action Overlay (Shadow DOM Isolated) ────────────────────────
 function injectFloatingSaveButton() {
   if (!document.body) {
     return;
@@ -177,7 +176,6 @@ function showShadowToast(shadow: ShadowRoot, message: string, isError = false) {
   }, 3500);
 }
 
-// ── Message Listener ──────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((req: ExtensionRequest, _sender, sendResponse) => {
   if (req.action === ACTION_SCRAPE_PRODUCT) {
     const product = extractAmazonProductDetails();
@@ -190,7 +188,6 @@ chrome.runtime.onMessage.addListener((req: ExtensionRequest, _sender, sendRespon
   }
 });
 
-// ── Amazon Product Page Detection ─────────────────────────────────────────────
 function isAmazonDomain(): boolean {
   return (
     /(^|\.)amazon\.(com|in|co\.uk|de|ca|fr|es|it|co\.jp|com\.au|com\.mx|sg|ae|nl|se|pl|com\.br|com\.tr|sa|eg)$/i.test(
@@ -206,7 +203,6 @@ function isAmazonProductPage(): boolean {
   const pathname = window.location.pathname;
   const search = window.location.search;
 
-  // 1. Check URL patterns (/dp/ASIN, /gp/product/ASIN, /product/ASIN, /gp/aw/d/ASIN, /d/ASIN, ?asin=ASIN)
   if (
     /\/(?:dp|gp\/product|product|gp\/aw\/d|d)\/([A-Z0-9]{10})/i.test(href) ||
     /[?&]asin=([A-Z0-9]{10})/i.test(search) ||
@@ -217,7 +213,6 @@ function isAmazonProductPage(): boolean {
     return true;
   }
 
-  // 2. Check DOM indicators on the page
   const productIndicators = document.querySelector(
     '#productTitle, span#productTitle, #title, #titleSection, #item_name, #ebooksProductTitle, input#ASIN, input[name="ASIN"], #dp, #dp-container, #ppd, #centerCol, #corePrice_feature_div, #add-to-cart-button, #buy-now-button'
   );
@@ -225,7 +220,6 @@ function isAmazonProductPage(): boolean {
   return Boolean(productIndicators);
 }
 
-// ── Auto-Inject & Dynamic SPA Synchronization ─────────────────────────────────
 function syncFloatingButton() {
   if (!isAmazonDomain()) return;
 
