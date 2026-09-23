@@ -6,28 +6,28 @@ export function buildElementCoordsScript(selector: string): string {
     (function() {
       const sel = ${JSON.stringify(selector)};
       const selectors = sel.split(',').map(s => s.trim());
-      let el = null;
+      let element = null;
       for (const s of selectors) {
         if (s === 'radio:first') {
           const modal = document.querySelector('[role="dialog"], .modal, .lightbox-dialog') || document.body;
-          el = modal.querySelector('input[type="radio"], [role="radio"], label.radio-label, label') || modal.querySelector('label');
+          element = modal.querySelector('input[type="radio"], [role="radio"], label.radio-label, label') || modal.querySelector('label');
         } else if (s.startsWith('text:')) {
           const searchText = s.slice(5).trim().toLowerCase();
           const allElements = Array.from(document.querySelectorAll('button, a, [role="button"], label, input, span'));
-          el = allElements.find(b => {
+          element = allElements.find(b => {
             const txt = (b.textContent || b.getAttribute('aria-label') || '').trim().toLowerCase();
             return txt.includes(searchText);
           });
         } else {
-          el = document.querySelector(s);
+          element = document.querySelector(s);
         }
-        if (el) break;
+        if (element) break;
       }
 
-      if (!el) return JSON.stringify({ found: false, error: 'No element matches "' + sel + '"' });
+      if (!element) return JSON.stringify({ found: false, error: 'No element matches "' + sel + '"' });
 
-      el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
-      const rect = el.getBoundingClientRect();
+      element.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+      const rect = element.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) {
         return JSON.stringify({ found: false, error: 'Element is hidden' });
       }

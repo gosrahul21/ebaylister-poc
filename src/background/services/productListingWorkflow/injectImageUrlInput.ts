@@ -122,15 +122,15 @@ export async function getImageInputTargetInfo(
   debuggee: chrome.debugger.Debuggee,
   index: number
 ): Promise<ImageInputTargetInfo> {
-  const evalRes = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
+  const evaluatedResult = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
     expression: buildTargetInputCoordinatesScript(index),
     returnByValue: true
   }) as { result?: { value?: string } };
-  console.log({evalRes});
-  const info: ImageInputTargetInfo = evalRes.result?.value
-    ? JSON.parse(evalRes.result.value)
+
+  const info: ImageInputTargetInfo = evaluatedResult.result?.value
+    ? JSON.parse(evaluatedResult.result.value)
     : { found: false, error: 'No return value from Runtime.evaluate' };
-  console.log({info})
+
   return info;
 }
 
@@ -147,11 +147,6 @@ export async function injectImageUrl(
   index: number,
   currentPosition: Position
 ): Promise<InjectImageResult> {
-  // 1. Ensure row exists in the modal
-  // const rowRes = await ensureUrlRowExists(debuggee, index, currentPosition);
-  // if (rowRes.currentPosition) {
-  //   currentPosition = rowRes.currentPosition;
-  // }
   await new Promise(r => setTimeout(r, 500));
   // 2. Prepare target element and calculate randomized position inside bounds
   const targetInfo = await getImageInputTargetInfo(debuggee, index);
@@ -174,7 +169,7 @@ export async function injectImageUrl(
   await new Promise(r => setTimeout(r, 150));
 
   // 4. Inject value mimicking human typing rhythm and framework event dispatching targeting exact element
-  await cdpInjectHumanValue(debuggee, url, targetInfo.id);
+  await cdpInjectHumanValue(debuggee, url, targetInfo.id || '');
 
   return {
     success: true,

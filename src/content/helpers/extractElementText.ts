@@ -2,9 +2,9 @@
  * Safely extracts clean human-readable text from a DOM element,
  * removing all embedded <script>, <style>, <noscript>, and CSS/JS code artifacts.
  */
-export function cleanExtractElementText(el: Element | null): string {
-  if (!el) return '';
-  const clone = el.cloneNode(true) as Element;
+export function cleanExtractElementText(element: Element | null): string {
+  if (!element) return '';
+  const clone = element.cloneNode(true) as Element;
 
   // Remove script, style, noscript, svg, iframe, form, button
   clone.querySelectorAll('script, style, noscript, svg, iframe, form, button').forEach(n => n.remove());

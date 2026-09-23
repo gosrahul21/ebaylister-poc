@@ -110,8 +110,8 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     '#wayfinding-breadcrumbs_feature_div ul li a, .a-breadcrumb ul li a, #wayfinding-breadcrumbs_feature_div li a'
   );
   console.log({breadcrumbEls})
-  breadcrumbEls.forEach(el => {
-    const text = el.textContent?.trim();
+  breadcrumbEls.forEach(element => {
+    const text = element.textContent?.trim();
     if (text && text !== '›' && text !== '>' && !text.includes('Back to results')) {
       categoryPath.push(text);
     }
@@ -161,8 +161,8 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
   const bulletEls = document.querySelectorAll(
     '#feature-bullets ul li span.a-list-item, #featurebullets_feature_div ul li span.a-list-item'
   );
-  bulletEls.forEach(el => {
-    const text = el.textContent?.trim();
+  bulletEls.forEach(element => {
+    const text = element.textContent?.trim();
     if (text && !text.includes('Make sure this fits') && text.length > 3) {
       features.push(text);
     }

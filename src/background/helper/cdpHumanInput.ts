@@ -1,8 +1,8 @@
-import { moveCursorToTargetElement } from './moveCursorToTargetElement';
-import { dispatchClick } from './dispatchClick';
-import { cdpTypeHuman } from './cdpTypeHuman';
+// import { cdpTypeHuman } from './cdpTypeHuman';
 import { smoothScrollToElement } from './smoothScrollToElement';
 import { buildIndexTargetCoordsScript } from '../injectors';
+import { cdpInjectHumanValue } from './cdpInjectHumanValue';
+import { moveCursorAndClick } from './moveCursorAndClick';
 
 export interface Point {
   x: number;
@@ -42,12 +42,12 @@ export async function cdpHumanInput(
     targetX = coords.x;
     targetY = coords.y;
   } else if (typeof target === 'number') {
-    const evalResult = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
+    const evaluatedResult = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
       expression: buildIndexTargetCoordsScript(target),
       returnByValue: true
     }) as { result?: { value?: string } };
 
-    const info = evalResult.result?.value ? JSON.parse(evalResult.result.value) : { found: false };
+    const info = evaluatedResult.result?.value ? JSON.parse(evaluatedResult.result.value) : { found: false };
     if (!info.found || info.x === undefined || info.y === undefined) {
       return { found: false, x: currentPos.x, y: currentPos.y, error: `Input index ${target} not found` };
     }
@@ -60,13 +60,9 @@ export async function cdpHumanInput(
   }
 
   // Bezier curve mouse movement
-  await moveCursorToTargetElement(currentPos, { x: targetX, y: targetY }, debuggee);
+  await moveCursorAndClick(currentPos,  { x: targetX, y: targetY }, debuggee);
 
-  // Click target element
-  await dispatchClick(debuggee, targetX, targetY);
-
-  // Perform CDP human typing
-  await cdpTypeHuman(debuggee, text, typeof target !== 'object' ? target : undefined);
-
+  // await cdpTypeHuman(debuggee, text, typeof target !== 'object' ? target : undefined);
+  await cdpInjectHumanValue(debuggee, text, target as string);
   return { found: true, x: targetX, y: targetY };
 }

@@ -3,503 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Amazon Product Lister POC</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #090916;
-      --card-bg: rgba(22, 24, 45, 0.75);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --amazon-orange: #ff9900;
-      --amazon-dark: #131921;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --accent-blue: #38bdf8;
-      --accent-green: #10b981;
-      --radius: 12px;
-    }
-
-    body {
-      width: 440px;
-      max-height: 600px;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-
-    /* Scrollbar styling */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
-
-    /* Header */
-    .header {
-      background: linear-gradient(135deg, #131921 0%, #232f3e 100%);
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 153, 0, 0.25);
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand-icon {
-      font-size: 22px;
-      filter: drop-shadow(0 2px 6px rgba(255,153,0,0.4));
-    }
-
-    .brand-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.3px;
-    }
-
-    .brand-title span {
-      color: var(--amazon-orange);
-    }
-
-    .saved-count-badge {
-      padding: 4px 10px;
-      background: rgba(255, 153, 0, 0.14);
-      border: 1px solid rgba(255, 153, 0, 0.4);
-      color: var(--amazon-orange);
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    /* Active Tab Banner */
-    .active-tab-banner {
-      margin: 14px 16px 8px;
-      padding: 12px 14px;
-      background: rgba(255, 153, 0, 0.07);
-      border: 1px solid rgba(255, 153, 0, 0.22);
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .banner-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: #cbd5e1;
-    }
-
-    .pulse-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent-green);
-      box-shadow: 0 0 8px var(--accent-green);
-    }
-
-    .pulse-dot.off {
-      background: var(--text-dim);
-      box-shadow: none;
-    }
-
-    #save-current-btn {
-      width: 100%;
-      padding: 10px;
-      background: linear-gradient(135deg, #ff9900 0%, #e67e00 100%);
-      color: #111;
-      border: none;
-      border-radius: 8px;
-      font-size: 12.5px;
-      font-weight: 800;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
-      box-shadow: 0 4px 14px rgba(255, 153, 0, 0.25);
-    }
-
-    #save-current-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(255, 153, 0, 0.4);
-    }
-
-    #save-current-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* Section controls */
-    .section-controls {
-      margin: 12px 16px 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-    }
-
-    .search-input {
-      flex: 1;
-      max-width: 180px;
-      padding: 6px 10px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--glass-border);
-      border-radius: 6px;
-      color: var(--text);
-      font-size: 11px;
-      outline: none;
-    }
-
-    .search-input:focus {
-      border-color: rgba(255, 153, 0, 0.4);
-    }
-
-    /* Product Cards Container */
-    .products-list {
-      padding: 0 16px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .empty-state {
-      padding: 30px 20px;
-      text-align: center;
-      color: var(--text-muted);
-      background: var(--card-bg);
-      border: 1px dashed var(--glass-border);
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .empty-icon { font-size: 32px; margin-bottom: 4px; }
-    .empty-text { font-size: 13px; font-weight: 600; color: var(--text); }
-    .empty-sub { font-size: 11.5px; color: var(--text-dim); line-height: 1.4; }
-
-    /* Product Card */
-    .product-card {
-      background: var(--card-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: border-color 0.2s, transform 0.2s;
-      position: relative;
-    }
-
-    .product-card:hover {
-      border-color: rgba(255, 153, 0, 0.3);
-    }
-
-    .card-top {
-      display: flex;
-      gap: 12px;
-    }
-
-    .product-thumb {
-      width: 72px;
-      height: 72px;
-      border-radius: 8px;
-      object-fit: contain;
-      background: #fff;
-      padding: 4px;
-      border: 1px solid var(--glass-border);
-      flex-shrink: 0;
-    }
-
-    .product-info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .product-title {
-      font-size: 12.5px;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.35;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-decoration: none;
-    }
-
-    .product-title:hover {
-      color: var(--amazon-orange);
-    }
-
-    .product-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      margin-top: 2px;
-    }
-
-    .price-tag {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--amazon-orange);
-    }
-
-    .asin-badge {
-      font-family: monospace;
-      font-size: 10px;
-      background: rgba(255,255,255,0.06);
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: var(--text-muted);
-    }
-
-    .rating-tag {
-      font-size: 10.5px;
-      color: #facc15;
-    }
-
-    /* Images strip */
-    .images-strip {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-
-    .images-strip img {
-      width: 36px;
-      height: 36px;
-      object-fit: contain;
-      background: #fff;
-      padding: 2px;
-      border-radius: 5px;
-      border: 1px solid var(--glass-border);
-      cursor: pointer;
-      transition: transform 0.15s;
-    }
-
-    .images-strip img:hover {
-      transform: scale(1.15);
-      border-color: var(--amazon-orange);
-    }
-
-    /* Features snippet */
-    .features-list {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      background: rgba(0,0,0,0.2);
-      padding: 8px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .features-list li {
-      margin-left: 14px;
-      line-height: 1.3;
-    }
-
-    /* Card Actions */
-    .card-actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding-top: 4px;
-      border-top: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .action-btn {
-      padding: 5px 10px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--glass-border);
-      color: var(--text-muted);
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .action-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: var(--text);
-    }
-
-    .action-btn.delete:hover {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.4);
-      color: #fca5a5;
-    }
-
-    .action-btn.ebay {
-      background: rgba(229, 57, 53, 0.15);
-      border-color: rgba(229, 57, 53, 0.4);
-      color: #ff6b6b;
-      font-weight: 700;
-    }
-
-    .action-btn.ebay:hover {
-      background: rgba(229, 57, 53, 0.3);
-      border-color: rgba(229, 57, 53, 0.65);
-      color: #ff8787;
-    }
-
-    .action-btn.view {
-      background: rgba(56, 189, 248, 0.12);
-      border-color: rgba(56, 189, 248, 0.3);
-      color: var(--accent-blue);
-    }
-
-    .action-btn.view:hover {
-      background: rgba(56, 189, 248, 0.22);
-    }
-
-    /* Footer */
-    .footer {
-      padding: 12px 16px;
-      background: rgba(0, 0, 0, 0.35);
-      border-top: 1px solid var(--glass-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      bottom: 0;
-      z-index: 20;
-    }
-
-    /* Modal Overlay */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      background: rgba(5, 5, 14, 0.88);
-      backdrop-filter: blur(12px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .modal-card {
-      width: 100%;
-      max-height: 520px;
-      background: #111326;
-      border: 1px solid rgba(255, 153, 0, 0.3);
-      border-radius: 16px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-    }
-
-    .modal-header {
-      padding: 14px 18px;
-      background: #1a1d36;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--glass-border);
-    }
-
-    .modal-header h2 {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--amazon-orange);
-    }
-
-    .close-modal {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 18px;
-      cursor: pointer;
-    }
-
-    .modal-body {
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .modal-gallery {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-    }
-
-    .modal-gallery img {
-      width: 70px;
-      height: 70px;
-      object-fit: contain;
-      background: #fff;
-      padding: 4px;
-      border-radius: 8px;
-      border: 1px solid var(--glass-border);
-    }
-
-    .spec-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
-
-    .spec-table th, .spec-table td {
-      padding: 6px 8px;
-      border: 1px solid rgba(255,255,255,0.07);
-      text-align: left;
-    }
-
-    .spec-table th {
-      background: rgba(255,255,255,0.04);
-      color: var(--text-muted);
-      width: 35%;
-    }
-
-    .spec-table td {
-      color: var(--text);
-    }
-  </style>
+  <link rel="stylesheet" href="./popup.css">
 </head>
 <body>
 
@@ -509,7 +13,12 @@
       <span class="brand-icon">🛍️</span>
       <div class="brand-title">Product Lister <span>POC</span></div>
     </div>
-    <div class="saved-count-badge" id="count-badge">0 Saved</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="action-btn" id="open-settings-btn" title="Global Listing Settings" style="padding: 5px 8px;">
+        ⚙️ Settings
+      </button>
+      <div class="saved-count-badge" id="count-badge">0 Saved</div>
+    </div>
   </div>
 
   <!-- Active Tab Banner -->
@@ -554,6 +63,73 @@
       </div>
       <div class="modal-body" id="modal-body-content">
         <!-- Content injected dynamically by popup.ts -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Settings Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-card" style="max-height: 480px; max-width: 400px;">
+      <div class="modal-header">
+        <h2>⚙️ Global Listing Settings</h2>
+        <button class="close-modal" id="close-settings-modal-btn">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 12px; padding: 16px;">
+        <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+          Set universal pricing markup and default eBay listing format preferences.
+        </div>
+
+        <!-- Markup % -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 700; color: #94a3b8;">PRICE MARKUP (%)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="number" id="setting-markup-pct" min="0" max="500" value="15" style="width: 100px; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 13px; font-weight: 700;" />
+            <span style="font-size: 11px; color: var(--text-dim);" id="markup-preview-text">% added to Amazon price</span>
+          </div>
+        </div>
+
+        <!-- Format -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 700; color: #94a3b8;">LISTING FORMAT</label>
+          <select id="setting-format" style="padding: 8px; background: rgba(22,24,45,0.9); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 12.5px;">
+            <option value="Buy It Now">Buy It Now (Fixed Price)</option>
+            <option value="Auction">Auction</option>
+          </select>
+        </div>
+
+        <!-- Auction Options -->
+        <div id="auction-settings-group" style="display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 10.5px; font-weight: 700; color: #94a3b8;">AUCTION STARTING BID (%)</label>
+            <input type="number" id="setting-bid-pct" min="10" max="100" value="70" style="width: 100px; padding: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 12px;" />
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 10.5px; font-weight: 700; color: #94a3b8;">AUCTION DURATION</label>
+            <select id="setting-duration" style="padding: 6px; background: rgba(22,24,45,0.9); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 12px;">
+              <option value="3 days">3 days</option>
+              <option value="5 days">5 days</option>
+              <option value="7 days" selected>7 days</option>
+              <option value="10 days">10 days</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Immediate Pay Checkbox -->
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cbd5e1; cursor: pointer; margin-top: 4px;">
+          <input type="checkbox" id="setting-immediate-pay" checked style="width: 16px; height: 16px; accent-color: var(--amazon-orange);" />
+          Require immediate payment for Buy It Now
+        </label>
+
+        <!-- Allow Offers Checkbox -->
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cbd5e1; cursor: pointer; margin-top: 2px;">
+          <input type="checkbox" id="setting-allow-offers" style="width: 16px; height: 16px; accent-color: var(--amazon-orange);" />
+          Allow buyers to send offers (Best Offer)
+        </label>
+
+        <button id="save-settings-btn" style="width: 100%; margin-top: 8px; padding: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
+          💾 Save Global Settings
+        </button>
       </div>
     </div>
   </div>

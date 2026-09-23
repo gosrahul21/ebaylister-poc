@@ -5,6 +5,7 @@ import { cdpHumanInput, smoothScrollToElement } from '../cdpHelper';
 import {
   buildCloseOpenMenusScript,
   buildDropdownSelectOptionScript,
+  buildMultiSelectOptionScript,
   buildNativeSelectOptionScript
 } from '../../injectors';
 
@@ -62,7 +63,7 @@ export async function fillDropdownField(
   await new Promise(r => setTimeout(r, 500 + Math.floor(Math.random() * 200)));
 
   const clickResult = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
-    expression: buildDropdownSelectOptionScript(value, field.options || [], !!field.allowCustomValue),
+    expression: buildDropdownSelectOptionScript(field.selector, value, field.options || [], !!field.allowCustomValue),
     returnByValue: true
   }) as { result?: { value?: string } };
 
@@ -73,7 +74,62 @@ export async function fillDropdownField(
     console.warn(`[CDP eBay Automator] Step 4c - Dropdown "${field.name}" could not be matched: ${clickRes.reason}`);
   }
 
+  // Ensure open popover menus are closed after dropdown operation
+  await closeOpenMenus(debuggee);
+
   await new Promise(r => setTimeout(r, 400 + Math.floor(Math.random() * 200)));
+  return currentPosition;
+}
+
+/**
+ * Fills an eBay multi-select dropdown field (with checkbox options and custom search input).
+ */
+export async function fillMultiSelectField(
+  debuggee: chrome.debugger.Debuggee,
+  field: FormFieldSchema,
+  value: string,
+  currentPosition: Position
+): Promise<Position> {
+  const ddCoords = await smoothScrollToElement(debuggee, field.selector);
+  if (!ddCoords.found || ddCoords.x === undefined || ddCoords.y === undefined) {
+    console.warn(`[CDP eBay Automator] MultiSelect not found for "${field.name}": ${ddCoords.error}`);
+    return currentPosition;
+  }
+
+  const ddTargetPos: Position = { x: ddCoords.x, y: ddCoords.y };
+  await moveCursorAndClick(currentPosition, ddTargetPos, debuggee);
+  currentPosition = ddTargetPos;
+  await new Promise(r => setTimeout(r, 500 + Math.floor(Math.random() * 200)));
+
+  let valuesToSelect: string[] = [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      valuesToSelect = parsed.map(v => String(v).trim());
+    } else {
+      valuesToSelect = String(value).split(',').map(s => s.trim());
+    }
+  } catch {
+    valuesToSelect = value.split(',').map(s => s.trim());
+  }
+
+  valuesToSelect = valuesToSelect.filter(Boolean);
+  
+  const clickResult = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
+    expression: buildMultiSelectOptionScript(field.selector, valuesToSelect, !!field.allowCustomValue),
+    returnByValue: true
+  }) as { result?: { value?: string } };
+
+  const clickRes = clickResult.result?.value ? JSON.parse(clickResult.result.value as string) : {};
+  if (clickRes.matched) {
+    console.log(`[CDP eBay Automator] MultiSelect "${field.name}" updated with values: [${valuesToSelect.join(', ')}] (matched count: ${clickRes.checkedCount})`);
+  } else {
+    console.warn(`[CDP eBay Automator] MultiSelect "${field.name}" could not match values: ${clickRes.reason}`);
+  }
+
+  await closeOpenMenus(debuggee);
+  await new Promise(r => setTimeout(r, 400 + Math.floor(Math.random() * 200)));
+
   return currentPosition;
 }
 

@@ -1,6 +1,5 @@
-import { AmazonProduct } from '../../../types';
+import { AmazonProduct, FieldValueMapping, ListingFormSchema } from '../../../types';
 import { extractFormSchema } from '../schemaExtractor';
-import { uploadProductImages } from './imageUpload';
 import { Position } from '@/background/helper/moveCursorToTargetElement';
 import {
   ensureDebuggerAttached,
@@ -8,9 +7,12 @@ import {
   waitForUrlAndComplete
 } from '../cdpHelper';
 import { closeOpenMenus, updateListingTitle } from './formFieldHandlers';
-import { fillAiFormFields } from './aiFormFiller';
+import { getProductListingFormValues } from './aiFormFiller';
 import { executePricingStep } from './pricingStep';
 import { executeShippingStep } from './shippingStep';
+import { fillItemSpecifics } from './fillItemSpecifics';
+import { fillDescription } from './fillDescription';
+import { uploadProductImages } from './imageUpload';
 
 /**
  * Step 4: Handles the main listing form (/lstng?draftId=...) by:
@@ -18,9 +20,10 @@ import { executeShippingStep } from './shippingStep';
  * 2. Dynamically extracting form schema
  * 3. Uploading product images from web
  * 4. Updating the item title
- * 5. Executing dynamic Pricing step (Select-Then-Re-Extract)
- * 6. Executing dynamic Shipping step (Select-Then-Re-Extract)
- * 7. Populating remaining form fields using Gemini AI
+ * 5. Filling Item Specifics (top-to-bottom UI order)
+ * 6. Filling Description
+ * 7. Executing dynamic Pricing step
+ * 8. Executing dynamic Shipping step
  */
 export async function executeListingFormStep(
   debuggee: chrome.debugger.Debuggee,
@@ -33,42 +36,34 @@ export async function executeListingFormStep(
   await new Promise(r => setTimeout(r, 2500));
   await ensureDebuggerAttached(debuggee);
   await injectVisualCursor(debuggee);
-
-  // 4a. Inspect DOM and extract complete form schema
-  const formSchema = await extractFormSchema(debuggee);
-
-  // 4b. Ensure any open popover dropdown menus are closed first
   await closeOpenMenus(debuggee);
 
-  // 4c. Photo Upload ("Upload from web" button directly in uploader canvas)
+  // 4a. Photo Upload ("Upload from web" button directly in uploader canvas)
   const uploadPos = await uploadProductImages(debuggee, targetProduct, currentPosition.x, currentPosition.y);
   currentPosition = { x: uploadPos.curX, y: uploadPos.curY };
 
-  // 4d. Fill Title Input
-  currentPosition = await updateListingTitle(debuggee, targetProduct.title, currentPosition);
+  // 4b. Inspect DOM and extract complete form schema
+  const formSchema: ListingFormSchema | null = await extractFormSchema(debuggee);
+  const productFormValues: FieldValueMapping[] = await getProductListingFormValues();
+  await new Promise(res => setTimeout(res, 5000));
 
-  // description
-  // item specifics essentials/optional
-  // 4e. AI-Driven Schema Fill – Call Gemini to populate all remaining form fields
-  if (formSchema && formSchema.allFields.length > 0) {
-    currentPosition = await fillAiFormFields(debuggee, targetProduct, formSchema, currentPosition);
-  } else {
-    console.warn('[CDP eBay Automator] Step 4c - No schema available. Skipping AI form fill.');
+  // 4c. Fill Title Input
+  currentPosition = await updateListingTitle(debuggee, targetProduct.title, currentPosition);
+  await closeOpenMenus(debuggee);
+
+  // 4d. Item Specifics (dynamic visual UI order)
+  if (formSchema && productFormValues.length > 0) {
+    currentPosition = await fillItemSpecifics(debuggee, currentPosition, targetProduct);
   }
 
+  // 4e. Description
+  currentPosition = await fillDescription(debuggee, targetProduct, productFormValues, currentPosition);
 
-  // 4e. Dynamic Pricing (Select master format, re-extract subfields, populate prices/duration)
+  // 4f. Dynamic Pricing (Format selection, subfields, immediate pay, allow offers)
   currentPosition = await executePricingStep(debuggee, targetProduct, currentPosition);
 
-  // 4f. Dynamic Shipping (Select shipping method, re-extract subfields, populate weights/dims)
+  // 4g. Dynamic Shipping (Method selection, weights/dimensions)
   currentPosition = await executeShippingStep(debuggee, targetProduct, currentPosition);
-
-  // preferances
-
-  // disclosure
-
-  // promote your listing 
-
 
   return currentPosition;
 }

@@ -8,13 +8,16 @@ export {
   injectVisualCursor,
   dispatchMouseMove,
   dispatchClick,
-  cdpTypeHuman,
   getElementCoords,
   waitForElementCoords,
   waitForUrlAndComplete,
   smoothScrollToElement,
   clickOutsideModal,
-  cdpHumanInput
+  cdpHumanInput,
+  moveCursorAndClick,
+  focusElement,
+  clickElement,
+  focusAndTypeInput
 } from '../helper';
 
 export type { Point, InputTarget } from '../helper';

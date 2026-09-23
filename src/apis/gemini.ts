@@ -6,16 +6,18 @@ import {
   PricingAiResult,
   ShippingAiResult
 } from './prompts/pricingShippingPrompts';
+import { buildItemSpecificsPrompt } from './prompts/itemSpecificsPrompt';
 import {
   saveLatestGeminiResponse,
   getGeminiApiKey,
-  saveGeminiApiKey
+  saveGeminiApiKey,
+  getGlobalSettings
 } from '../background/services/storageService';
 
 export { getGeminiApiKey, saveGeminiApiKey };
 export type { PricingAiResult, ShippingAiResult };
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-3.1-flash-lite';
 
 export interface GeminiResponsePayload {
   fieldValues: FieldValueMapping[];
@@ -90,18 +92,75 @@ export async function generateListingFormValues(
 }
 
 /**
+ * Invokes Gemini REST API specifically to determine item specific field values based on live extracted fields.
+ */
+export async function generateItemSpecificsValues(
+  product: AmazonProduct,
+  fields: import('../types').FormFieldSchema[],
+  apiKeyOverride?: string
+): Promise<FieldValueMapping[]> {
+  try {
+    const apiKey = apiKeyOverride || (await getGeminiApiKey());
+    if (!apiKey) {
+      console.warn('[Gemini API] No API key available for Item Specifics generation.');
+      return [];
+    }
+
+    const { systemInstruction, userPrompt } = buildItemSpecificsPrompt(product, fields);
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${encodeURIComponent(apiKey || '')}`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: {
+          temperature: 0.2,
+          topP: 0.95,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[Gemini API] Item Specifics API error (${response.status}): ${errText}`);
+      return [];
+    }
+
+    const data = await response.json();
+    const textContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textContent) return [];
+
+    const parsed: GeminiResponsePayload = JSON.parse(textContent);
+    console.log('[Gemini API] Generated Item Specifics Values:', parsed.fieldValues);
+    return parsed.fieldValues || [];
+  } catch (err) {
+    console.error('[Gemini API] Failed to generate Item Specifics values:', err);
+    return [];
+  }
+}
+
+/**
  * Invokes Gemini REST API to determine pricing format (Buy It Now vs Auction) and subfield prices.
  */
 export async function generatePricingValues(
   product: AmazonProduct,
   apiKeyOverride?: string
 ): Promise<PricingAiResult> {
-  const defaultPrice = product.price ? product.price.replace(/[^0-9.]/g, '') || '19.99' : '19.99';
+  const globalSettings = await getGlobalSettings();
+  const rawPriceNum = parseFloat(product.price ? product.price.replace(/[^0-9.]/g, '') || '19.99' : '19.99');
+  const markedUpPrice = (rawPriceNum * (1 + (globalSettings.markupPercentage ?? 15) / 100)).toFixed(2);
+  const startPrice = (parseFloat(markedUpPrice) * ((globalSettings.auctionBidPercentage ?? 70) / 100)).toFixed(2);
+
   const fallbackResult: PricingAiResult = {
-    format: 'Buy It Now',
-    price: defaultPrice,
+    format: globalSettings.format || 'Buy It Now',
+    price: markedUpPrice,
+    startPrice: startPrice,
+    duration: globalSettings.auctionDuration || '7 days',
     quantity: '1',
-    immediatePay: true,
+    immediatePay: globalSettings.immediatePay !== false,
     bestOfferEnabled: false
   };
 
@@ -129,12 +188,12 @@ export async function generatePricingValues(
 
     const parsed = JSON.parse(textContent);
     return {
-      format: parsed.format === 'Auction' ? 'Auction' : 'Buy It Now',
-      price: parsed.price ? String(parsed.price).replace(/[^0-9.]/g, '') : defaultPrice,
-      startPrice: parsed.startPrice ? String(parsed.startPrice).replace(/[^0-9.]/g, '') : undefined,
-      duration: parsed.duration || '7 days',
+      format: globalSettings.format || (parsed.format === 'Auction' ? 'Auction' : 'Buy It Now'),
+      price: markedUpPrice,
+      startPrice: startPrice,
+      duration: globalSettings.auctionDuration || parsed.duration || '7 days',
       quantity: parsed.quantity ? String(parsed.quantity).replace(/[^0-9]/g, '') : '1',
-      immediatePay: parsed.immediatePay !== false,
+      immediatePay: globalSettings.immediatePay !== false,
       bestOfferEnabled: !!parsed.bestOfferEnabled
     };
   } catch (err) {

@@ -1,21 +1,75 @@
 import { AmazonProduct } from '../../../types';
 import { Position } from '@/background/helper/moveCursorToTargetElement';
-import { generatePricingValues, PricingAiResult } from '../../../apis/gemini';
+import { PricingAiResult } from '../../../apis/gemini';
 import { extractPricingFields } from '../schemaExtractor';
 import { fillListboxOption } from './listboxHelper';
 import { fillInputField } from './formFieldHandlers';
-import { buildImmediatePaymentCheckboxScript } from '../../injectors';
+import { buildImmediatePaymentCheckboxScript, buildAllowOffersToggleScript } from '../../injectors';
+import { getGlobalSettings } from '../storageService';
 
-const FORMAT_BUTTON_SELECTOR = '.format button.listbox-button__control, button[aria-labelledby*="format"], .summary__price .format button';
-const DURATION_BUTTON_SELECTOR = 'button[aria-labelledby*="duration"], .summary__price button[aria-labelledby*="duration"]';
+const FORMAT_BUTTON_SELECTOR = 'button[name="format"], button[aria-labelledby*="format"], .format button.listbox-button__control, select[name="format"]';
+const DURATION_BUTTON_SELECTOR = 'button[name="duration"], button[aria-labelledby*="duration"], .duration button.listbox-button__control, select[name="duration"]';
+
+/**
+ * Polls the DOM until the pricing section finishes re-rendering
+ * and the expected field for the target format (e.g. "price" or "startPrice")
+ * is mounted, interactive, and available in the DOM.
+ */
+async function waitForPricingSectionFields(
+  debuggee: chrome.debugger.Debuggee,
+  targetFormat: 'Buy It Now' | 'Auction',
+  maxWaitMs: number = 10000,
+  intervalMs: number = 400
+): Promise<import('../../../types').FormFieldSchema[]> {
+  const startTime = Date.now();
+  const expectedFieldName = targetFormat === 'Auction' ? 'startPrice' : 'price';
+  console.log(`[Pricing Step] Polling DOM for pricing section fields (waiting for "${expectedFieldName}")...`);
+
+  // Initial short pause for framework transition to kick in
+  await new Promise(r => setTimeout(r, 350));
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const fields = await extractPricingFields(debuggee);
+    const fieldMap = new Map(fields.map(f => [f.name, f]));
+
+    if (fieldMap.has(expectedFieldName)) {
+      console.log(`[Pricing Step] Polling succeeded! Detected target field "${expectedFieldName}" in DOM after ${Date.now() - startTime}ms.`);
+      return fields;
+    }
+
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+
+  console.warn(`[Pricing Step] Polling timed out after ${maxWaitMs}ms waiting for "${expectedFieldName}". Extracting currently rendered fields.`);
+  return await extractPricingFields(debuggee);
+}
+
+/**
+ * Calculates pricing plan deterministically from Global Settings and Amazon Product price (0ms, no API calls)
+ */
+export async function derivePricingPlanFromGlobalSettings(product: AmazonProduct): Promise<PricingAiResult> {
+  const settings = await getGlobalSettings();
+  const rawPriceNum = parseFloat(product.price ? product.price.replace(/[^0-9.]/g, '') || '19.99' : '19.99');
+  const markedUpPrice = (rawPriceNum * (1 + (settings.markupPercentage ?? 15) / 100)).toFixed(2);
+  const startPrice = (parseFloat(markedUpPrice) * ((settings.auctionBidPercentage ?? 70) / 100)).toFixed(2);
+
+  return {
+    format: settings.format || 'Buy It Now',
+    price: markedUpPrice,
+    startPrice: startPrice,
+    duration: settings.auctionDuration || '7 days',
+    quantity: '1',
+    immediatePay: settings.immediatePay !== false,
+    bestOfferEnabled: settings.allowOffers === true
+  };
+}
 
 /**
  * Step: Dynamic Pricing Section Handler
- * 1. Asks AI for format (Buy It Now vs Auction) + subfield values
+ * 1. Calculates pricing plan deterministically from Global Settings & Amazon product price (0ms, no LLM call)
  * 2. Selects master format listbox dropdown via visual CDP cursor
- * 3. Waits ~800ms for DOM re-render
- * 4. Re-extracts only the now-visible pricing subfields from .summary__price
- * 5. Fills visible subfields (price, startPrice, duration, quantity, immediatePay)
+ * 3. Polls DOM until loading state clears and format subfields mount
+ * 4. Fills visible subfields (price, startPrice, duration, quantity, immediatePay)
  */
 export async function executePricingStep(
   debuggee: chrome.debugger.Debuggee,
@@ -24,21 +78,9 @@ export async function executePricingStep(
 ): Promise<Position> {
   console.log('[Pricing Step] Starting dynamic pricing step...');
 
-  // 1. Get AI pricing recommendations
-  let pricingPlan: PricingAiResult;
-  try {
-    pricingPlan = await generatePricingValues(targetProduct);
-    console.log('[Pricing Step] Gemini determined pricing plan:', JSON.stringify(pricingPlan));
-  } catch (err) {
-    console.warn('[Pricing Step] AI pricing generation failed, using defaults:', err);
-    const cleanPrice = targetProduct.price ? targetProduct.price.replace(/[^0-9.]/g, '') || '19.99' : '19.99';
-    pricingPlan = {
-      format: 'Buy It Now',
-      price: cleanPrice,
-      quantity: '1',
-      immediatePay: true
-    };
-  }
+  // 1. Derive pricing plan from Global Settings (0ms, no API call)
+  const pricingPlan = await derivePricingPlanFromGlobalSettings(targetProduct);
+  console.log('[Pricing Step] Derived pricing plan from Global Settings:', JSON.stringify(pricingPlan));
 
   // 2. Select the Master Format dropdown (eBay custom listbox)
   try {
@@ -52,12 +94,8 @@ export async function executePricingStep(
     console.warn('[Pricing Step] Failed to select format listbox option:', err);
   }
 
-  // 3. Wait for DOM re-render (~800ms)
-  console.log('[Pricing Step] Waiting 800ms for pricing section DOM re-render...');
-  await new Promise(r => setTimeout(r, 800));
-
-  // 4. Re-extract subfields present in the updated DOM
-  const renderedFields = await extractPricingFields(debuggee);
+  // 3. Poll DOM for pricing section re-render until expected subfield ("price" or "startPrice") mounts
+  const renderedFields = await waitForPricingSectionFields(debuggee, pricingPlan.format);
   const fieldMap = new Map(renderedFields.map(f => [f.name, f]));
   console.log(`[Pricing Step] Rendered fields count: ${renderedFields.length}. Fields: ${Array.from(fieldMap.keys()).join(', ')}`);
 
@@ -116,6 +154,12 @@ export async function executePricingStep(
       });
     }
   }
+
+  // Allow offers toggle (runs for both Buy It Now and Auction)
+  console.log(`[Pricing Step] Setting "Allow offers" toggle to: ${!!pricingPlan.bestOfferEnabled}`);
+  await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
+    expression: buildAllowOffersToggleScript(!!pricingPlan.bestOfferEnabled)
+  });
 
   console.log('[Pricing Step] Dynamic pricing step successfully completed.');
   return currentPosition;

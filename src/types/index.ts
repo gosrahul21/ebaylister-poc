@@ -18,11 +18,20 @@ export interface AmazonProduct {
   savedAt: number;
 }
 
+export interface GlobalListingSettings {
+  markupPercentage: number; // e.g. 15 for 15%
+  format: 'Buy It Now' | 'Auction';
+  auctionBidPercentage: number; // e.g. 70 for 70% of item price
+  auctionDuration: string; // '3 days' | '5 days' | '7 days' | '10 days'
+  immediatePay: boolean;
+  allowOffers: boolean;
+}
+
 export interface FormFieldSchema {
   id: string;
   name: string;
   label: string;
-  type: 'text' | 'dropdown' | 'select' | 'checkbox' | 'radio' | 'textarea' | 'rich-text';
+  type: 'text' | 'dropdown' | 'multiselect' | 'select' | 'checkbox' | 'radio' | 'textarea' | 'rich-text' | 'pill';
   section: string;
   subsection?: string;
   required: boolean;
@@ -59,6 +68,8 @@ export enum ExtensionAction {
   GET_FORM_SCHEMA = 'GET_FORM_SCHEMA',
   SAVE_GEMINI_API_KEY = 'SAVE_GEMINI_API_KEY',
   GET_GEMINI_API_KEY = 'GET_GEMINI_API_KEY',
+  SAVE_GLOBAL_SETTINGS = 'SAVE_GLOBAL_SETTINGS',
+  GET_GLOBAL_SETTINGS = 'GET_GLOBAL_SETTINGS'
 }
 
 export type ExtensionRequest =
@@ -70,10 +81,12 @@ export type ExtensionRequest =
   | { action: ExtensionAction.AUTOMATE_EBAY_LISTING; categoryQuery: string | string[]; product?: AmazonProduct }
   | { action: ExtensionAction.GET_FORM_SCHEMA }
   | { action: ExtensionAction.SAVE_GEMINI_API_KEY; apiKey: string }
-  | { action: ExtensionAction.GET_GEMINI_API_KEY };
+  | { action: ExtensionAction.GET_GEMINI_API_KEY }
+  | { action: ExtensionAction.SAVE_GLOBAL_SETTINGS; settings: Partial<GlobalListingSettings> }
+  | { action: ExtensionAction.GET_GLOBAL_SETTINGS };
 
 export type ExtensionResponse =
-  | { success: true; product?: AmazonProduct; products?: AmazonProduct[]; schema?: ListingFormSchema; apiKey?: string }
+  | { success: true; product?: AmazonProduct; products?: AmazonProduct[]; schema?: ListingFormSchema; apiKey?: string; settings?: GlobalListingSettings }
   | { success: false; error: string };
 
 

@@ -47,17 +47,17 @@ export async function getTargetElementPosition(
   const targetString = Array.isArray(selectorOrId) ? selectorOrId.join(', ') : selectorOrId;
 
   try {
-    const evalRes = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
+    const evaluatedResult = await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
       expression: buildTargetElementPositionScript(targetString, padRatioX, padRatioY, maxPadX, maxPadY),
       returnByValue: true
     }) as { result?: { value?: string }; exceptionDetails?: { text?: string } };
 
-    if (evalRes.exceptionDetails) {
-      return { found: false, error: evalRes.exceptionDetails.text || 'DOM evaluation failed' };
+    if (evaluatedResult.exceptionDetails) {
+      return { found: false, error: evaluatedResult.exceptionDetails.text || 'DOM evaluation failed' };
     }
 
-    const info: TargetElementPosition = evalRes.result?.value
-      ? JSON.parse(evalRes.result.value)
+    const info: TargetElementPosition = evaluatedResult.result?.value
+      ? JSON.parse(evaluatedResult.result.value)
       : { found: false, error: 'No return value from Runtime.evaluate' };
 
     if (info.found && info.x !== undefined && info.y !== undefined) {

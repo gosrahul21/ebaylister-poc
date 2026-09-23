@@ -7,7 +7,9 @@ import {
   clearAllProducts,
   getFormSchema,
   saveGeminiApiKey,
-  getGeminiApiKey
+  getGeminiApiKey,
+  getGlobalSettings,
+  saveGlobalSettings
 } from './services/storageService';
 import { automateEbayListing } from './services/ebayAutomator';
 
@@ -67,6 +69,20 @@ chrome.runtime.onMessage.addListener(
       getGeminiApiKey()
         .then(apiKey => sendResponse({ success: true, apiKey: apiKey || undefined }))
         .catch(err => sendResponse({ success: false, error: err.message || 'Failed to get Gemini API key' }));
+      return true;
+    }
+
+    if (request.action === ExtensionAction.GET_GLOBAL_SETTINGS) {
+      getGlobalSettings()
+        .then(settings => sendResponse({ success: true, settings }))
+        .catch(err => sendResponse({ success: false, error: err.message || 'Failed to get global settings' }));
+      return true;
+    }
+
+    if (request.action === ExtensionAction.SAVE_GLOBAL_SETTINGS) {
+      saveGlobalSettings(request.settings)
+        .then(settings => sendResponse({ success: true, settings }))
+        .catch(err => sendResponse({ success: false, error: err.message || 'Failed to save global settings' }));
       return true;
     }
   }

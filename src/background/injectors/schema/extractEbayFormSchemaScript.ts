@@ -1,10 +1,3 @@
-/**
- * Injector scripts for extracting eBay listing form schemas:
- * - Full listing form schema
- * - Dynamic pricing section fields
- * - Dynamic shipping section fields
- */
-
 export function buildExtractEbayFormSchemaScript(): string {
   return `
     (function extractEbayFormSchema() {
@@ -45,34 +38,41 @@ export function buildExtractEbayFormSchemaScript(): string {
       }
 
       // 3. Item Specifics (Attributes)
-      const attrFields = Array.from(document.querySelectorAll('[data-testid="attribute"]'));
+      const attrFields = Array.from(document.querySelectorAll('[data-testid="attribute"], .summary__attributes--field'));
       attrFields.forEach(attrEl => {
-        const labelBtn = attrEl.querySelector('.summary__attributes--label button, .summary__attributes--label label');
+        const labelBtn = attrEl.querySelector('.summary__attributes--label button, .summary__attributes--label label, label');
         const label = labelBtn ? (labelBtn.textContent || '').trim() : '';
         if (!label) return;
 
         const fieldset = attrEl.closest('fieldset');
-        const subsection = fieldset ? (fieldset.querySelector('legend h3')?.textContent || '').trim() : '';
+        const subsection = fieldset ? (fieldset.querySelector('legend h3, legend')?.textContent || '').trim() : '';
 
         const btn = attrEl.querySelector('button[name^="attributes."]');
         const input = attrEl.querySelector('input[name^="attributes."]');
+        const pillBtns = Array.from(attrEl.querySelectorAll('.summary__attributes--pill, button[aria-pressed]'));
+        const pillUl = attrEl.querySelector('.summary__attributes--value ul, ul[aria-label]');
 
         if (btn) {
           const name = btn.getAttribute('name') || '';
           const menuId = btn.getAttribute('aria-controls');
           const menu = menuId ? document.getElementById(menuId) : null;
-          const optionItems = menu ? Array.from(menu.querySelectorAll('.menu__item span, .filter-menu__text')) : [];
+          const isMulti = menu ? menu.querySelector('[role="menuitemcheckbox"], .filter-menu__item, .filter-menu') !== null : false;
+          const optionItems = menu ? Array.from(menu.querySelectorAll('.menu__item span, .filter-menu__text, .filter-menu__item span, .toggle-button__title, button.toggle-button')) : [];
           const options = optionItems.map(o => (o.textContent || '').trim()).filter(Boolean);
 
-          const searchBox = menu ? menu.querySelector('.se-search-box input, input[name^="search-box-"]') : null;
-          const searchPlaceholder = searchBox ? (searchBox.getAttribute('placeholder') || searchBox.getAttribute('aria-label') || '').toLowerCase() : '';
-          const allowCustomValue = searchPlaceholder.includes('enter your own') || searchPlaceholder.includes('search or enter') || searchBox !== null;
+          const searchBox = menu ? menu.querySelector('.se-search-box input, input[name^="search-box-"], input') : null;
+          const searchAttrText = searchBox ? (
+            (searchBox.getAttribute('placeholder') || '') + ' ' +
+            (searchBox.getAttribute('aria-label') || '') + ' ' +
+            (searchBox.getAttribute('title') || '')
+          ).toLowerCase() : '';
+          const allowCustomValue = searchAttrText.includes('enter your own') || searchAttrText.includes('or enter');
 
           allFields.push({
             id: btn.id || ('attr-' + name),
             name: name,
             label: label,
-            type: 'dropdown',
+            type: isMulti ? 'multiselect' : 'dropdown',
             section: 'Item specifics',
             subsection: subsection,
             required: attrEl.querySelector('.required-field') !== null,
@@ -94,6 +94,23 @@ export function buildExtractEbayFormSchemaScript(): string {
             currentValue: input.value || '',
             placeholder: input.placeholder || '',
             selector: 'input[name="' + name + '"]'
+          });
+        } else if (pillBtns.length > 0 || pillUl) {
+          const name = 'attributes.' + label;
+          const options = pillBtns.map(b => (b.textContent || '').trim()).filter(Boolean);
+          const currentVal = pillBtns.find(b => b.getAttribute('aria-pressed') === 'true')?.textContent?.trim() || '';
+          allFields.push({
+            id: 'attr-' + name,
+            name: name,
+            label: label,
+            type: 'pill',
+            section: 'Item specifics',
+            subsection: subsection,
+            required: attrEl.querySelector('.required-field') !== null,
+            currentValue: currentVal,
+            options: options.length > 0 ? options : ['Yes', 'No'],
+            allowCustomValue: false,
+            selector: pillUl ? 'ul[aria-label="' + label + '"]' : '[data-testid="attribute"]'
           });
         }
       });
@@ -184,136 +201,6 @@ export function buildExtractEbayFormSchemaScript(): string {
         totalFieldsCount: allFields.length,
         allFields: allFields
       });
-    })()
-  `;
-}
-
-export function buildExtractPricingSectionScript(): string {
-  return `
-    (function() {
-      const fields = [];
-      const container = document.querySelector('.summary__price, [class*="summary__price"]');
-      if (!container) return JSON.stringify(fields);
-
-      // 1. Format
-      const formatBtn = container.querySelector('.format button, button[aria-labelledby*="format"]');
-      const formatNativeSelect = container.querySelector('select[name="format"]');
-      if (formatBtn || formatNativeSelect) {
-        fields.push({
-          id: formatBtn?.id || formatNativeSelect?.id || 'format',
-          name: 'format',
-          label: 'Format',
-          type: 'select',
-          section: 'Pricing',
-          required: true,
-          currentValue: (formatBtn?.querySelector('.btn__text')?.textContent || formatNativeSelect?.value || '').trim(),
-          options: ['Auction', 'Buy It Now'],
-          selector: '.format button, select[name="format"], button[aria-labelledby*="format"]'
-        });
-      }
-
-      // 2. Duration (in Auction format)
-      const durationBtn = container.querySelector('button[aria-labelledby*="duration"]');
-      const durationSelect = container.querySelector('select[name="duration"]');
-      if (durationBtn || durationSelect) {
-        fields.push({
-          id: durationBtn?.id || durationSelect?.id || 'duration',
-          name: 'duration',
-          label: 'Auction duration',
-          type: 'select',
-          section: 'Pricing',
-          required: false,
-          currentValue: (durationBtn?.querySelector('.btn__text')?.textContent || durationSelect?.value || '').trim(),
-          options: ['3 days', '5 days', '7 days', '10 days'],
-          selector: 'button[aria-labelledby*="duration"], select[name="duration"]'
-        });
-      }
-
-      // 3. Price inputs: startPrice, price, auctionReservePrice, quantity
-      const inputs = Array.from(container.querySelectorAll('input[name="startPrice"], input[name="price"], input[name="auctionReservePrice"], input[name="quantity"]'));
-      inputs.forEach(inp => {
-        const labelEl = inp.closest('.se-field')?.querySelector('.field__label, label');
-        const label = labelEl ? (labelEl.textContent || '').trim() : inp.name;
-        fields.push({
-          id: inp.id || ('price-' + inp.name),
-          name: inp.name,
-          label: label,
-          type: 'text',
-          section: 'Pricing',
-          required: inp.required || inp.getAttribute('aria-required') === 'true',
-          currentValue: inp.value || '',
-          selector: 'input[name="' + inp.name + '"]'
-        });
-      });
-
-      // 4. Checkboxes: immediatePay, bestOfferEnabled
-      const checkboxes = Array.from(container.querySelectorAll('input[name="immediatePay"], input[name="bestOfferEnabled"]'));
-      checkboxes.forEach(cb => {
-        const labelEl = cb.closest('.se-field, .se-checkbox')?.querySelector('.field__label, label');
-        const label = labelEl ? (labelEl.textContent || '').trim() : cb.name;
-        fields.push({
-          id: cb.id || cb.name,
-          name: cb.name,
-          label: label,
-          type: 'checkbox',
-          section: 'Pricing',
-          required: false,
-          currentValue: cb.checked ? 'true' : 'false',
-          selector: 'input[name="' + cb.name + '"]'
-        });
-      });
-
-      return JSON.stringify(fields);
-    })()
-  `;
-}
-
-export function buildExtractShippingSectionScript(): string {
-  return `
-    (function() {
-      const fields = [];
-      const container = document.querySelector('.summary__shipping, [class*="summary__shipping"]');
-      if (!container) return JSON.stringify(fields);
-
-      // 1. Master shipping method
-      const shipMethodBtn = container.querySelector('button[aria-labelledby*="domesticShippingType"], .summary__shipping--field button');
-      const shipNativeSelect = container.querySelector('select[name="domesticShippingType"]');
-      if (shipMethodBtn || shipNativeSelect) {
-        fields.push({
-          id: shipNativeSelect?.id || shipMethodBtn?.id || 'domesticShippingType',
-          name: 'domesticShippingType',
-          label: 'Shipping method',
-          type: 'select',
-          section: 'Shipping',
-          required: true,
-          currentValue: (shipMethodBtn?.querySelector('.btn__text')?.textContent || shipNativeSelect?.value || '').trim(),
-          options: [
-            'Standard shipping: Small to medium items',
-            'Freight: Large items that require special handling',
-            'No shipping. Local pickup only'
-          ],
-          selector: 'button[aria-labelledby*="domesticShippingType"], .summary__shipping--field button, select[name="domesticShippingType"]'
-        });
-      }
-
-      // 2. Package Details: majorWeight, minorWeight, packageLength, packageWidth, packageDepth
-      const shipInputs = Array.from(container.querySelectorAll('input[name="majorWeight"], input[name="minorWeight"], input[name="packageLength"], input[name="packageWidth"], input[name="packageDepth"]'));
-      shipInputs.forEach(inp => {
-        const labelEl = inp.closest('.se-field')?.querySelector('.field__label, label');
-        const label = inp.getAttribute('aria-label') || (labelEl ? (labelEl.textContent || '').trim() : inp.name);
-        fields.push({
-          id: inp.id || ('shipping-' + inp.name),
-          name: inp.name,
-          label: label,
-          type: 'text',
-          section: 'Shipping',
-          required: false,
-          currentValue: inp.value || '',
-          selector: 'input[name="' + inp.name + '"]'
-        });
-      });
-
-      return JSON.stringify(fields);
     })()
   `;
 }

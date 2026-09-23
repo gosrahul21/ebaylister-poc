@@ -7,23 +7,23 @@ export function buildIndexTargetCoordsScript(index: number): string {
     (function() {
       const idx = ${index};
       const allInputs = Array.from(document.querySelectorAll('input'));
-      let el = allInputs.find(inp => inp.id && (inp.id.includes('[' + idx + ']-se-textbox') || (inp.id.includes('@PHOTOS') && inp.id.includes('[' + idx + ']'))));
-      if (!el) {
+      let element = allInputs.find(inp => inp.id && (inp.id.includes('[' + idx + ']-se-textbox') || (inp.id.includes('@PHOTOS') && inp.id.includes('[' + idx + ']'))));
+      if (!element) {
         const urlRows = Array.from(document.querySelectorAll('.url-row'));
-        if (urlRows[idx]) el = urlRows[idx].querySelector('input.textbox__control, input');
+        if (urlRows[idx]) element = urlRows[idx].querySelector('input.textbox__control, input');
       }
-      if (!el) {
+      if (!element) {
         const modal = document.querySelector('[role="dialog"], .lightbox-dialog, .modal') || document.body;
         const visible = Array.from(modal.querySelectorAll('.url-row input, input.textbox__control, input[type="text"], input:not([type]), input')).filter(inp => {
           const style = window.getComputedStyle(inp);
           const rect = inp.getBoundingClientRect();
           return style.display !== 'none' && style.visibility !== 'hidden' && inp.offsetParent !== null && rect.width > 0 && rect.height > 0;
         });
-        el = visible[idx] || visible[visible.length - 1];
+        element = visible[idx] || visible[visible.length - 1];
       }
-      if (!el) return JSON.stringify({ found: false });
-      el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
-      const rect = el.getBoundingClientRect();
+      if (!element) return JSON.stringify({ found: false });
+      element.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+      const rect = element.getBoundingClientRect();
       return JSON.stringify({
         found: true,
         x: Math.round(rect.left + rect.width / 2),

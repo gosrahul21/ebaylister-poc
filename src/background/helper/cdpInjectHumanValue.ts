@@ -2,6 +2,8 @@ import {
   buildResetInputValueScript,
   buildCommitInputValueScript
 } from '../injectors';
+import { smoothScrollToElement } from './smoothScrollToElement';
+// import { getCSSSelector } from './moveCursorAndClick';
 
 /**
  * Reusable CDP helper that focuses a target element (by selector or ID)
@@ -14,8 +16,10 @@ import {
 export async function cdpInjectHumanValue(
   debuggee: chrome.debugger.Debuggee,
   value: string,
-  selectorOrId?: string
+  selectorOrId: string
 ): Promise<boolean> {
+  // const cssSelector = getCSSSelector(selectorOrId);
+  await smoothScrollToElement(debuggee, selectorOrId);
   // 1. Focus the target element and reset existing value
   await chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
     expression: buildResetInputValueScript(selectorOrId)
@@ -28,7 +32,7 @@ export async function cdpInjectHumanValue(
   for (let i = 0; i < value.length; i += chunkSize) {
     const chunk = value.slice(i, i + chunkSize);
     await chrome.debugger.sendCommand(debuggee, 'Input.insertText', { text: chunk });
-    const delay = Math.floor(Math.random() * 20) + 15; // 15-35ms
+    const delay = Math.floor(Math.random() * 100) + 15; // 15-35ms
     await new Promise(r => setTimeout(r, delay));
   }
 
