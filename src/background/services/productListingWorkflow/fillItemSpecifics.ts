@@ -201,7 +201,9 @@ export const fillItemSpecificDropdown = async (
         if (optionClicked) {
           console.log(`[CDP eBay Automator] Item Specifics - Selected dropdown option "${parsed.text}" for "${selector}"`);
         }
-      } catch (e) {}
+      } catch (err) {
+        console.warn(`[CDP eBay Automator] Item Specifics - Failed to parse dropdown option result for "${selector}":`, err);
+      }
     }
 
     if (!optionClicked) {

@@ -109,7 +109,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
   const breadcrumbEls = document.querySelectorAll(
     '#wayfinding-breadcrumbs_feature_div ul li a, .a-breadcrumb ul li a, #wayfinding-breadcrumbs_feature_div li a'
   );
-  console.log({breadcrumbEls})
   breadcrumbEls.forEach(element => {
     const text = element.textContent?.trim();
     if (text && text !== '›' && text !== '>' && !text.includes('Back to results')) {

@@ -10,8 +10,8 @@ export function buildCloseOpenMenusScript(): string {
       });
 
       // 2. Blur active element
-      if (document.activeElement && document.activeElement !== document.body) {
-        try { document.activeElement.blur(); } catch (e) {}
+      if (document.activeElement && typeof (document.activeElement as HTMLElement).blur === 'function' && document.activeElement !== document.body) {
+        (document.activeElement as HTMLElement).blur();
       }
 
       // 3. Reset aria-expanded state on trigger buttons
