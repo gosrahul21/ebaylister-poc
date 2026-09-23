@@ -3,14 +3,14 @@ import { createProductCard, CardCallbacks } from './productCard';
 
 export function filterProducts(products: AmazonProduct[], query: string): AmazonProduct[] {
   if (!query) return products;
-  const q = query.toLowerCase();
+  const lowerQuery = query.toLowerCase();
   return products.filter(
-    p =>
-      p.title.toLowerCase().includes(q) ||
-      p.asin.toLowerCase().includes(q) ||
-      p.brand.toLowerCase().includes(q) ||
-      (p.category || '').toLowerCase().includes(q) ||
-      (p.categoryPath || []).some(c => c.toLowerCase().includes(q))
+    product =>
+      product.title.toLowerCase().includes(lowerQuery) ||
+      product.asin.toLowerCase().includes(lowerQuery) ||
+      product.brand.toLowerCase().includes(lowerQuery) ||
+      (product.category || '').toLowerCase().includes(lowerQuery) ||
+      (product.categoryPath || []).some(cat => cat.toLowerCase().includes(lowerQuery))
   );
 }
 

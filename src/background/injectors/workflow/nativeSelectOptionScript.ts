@@ -5,9 +5,9 @@ export function buildNativeSelectOptionScript(selector: string, value: string): 
       if (!sel) return;
       const opts = Array.from(sel.options);
       const targetVal = ${JSON.stringify(value.toLowerCase())};
-      const opt = opts.find(o => o.text.toLowerCase().includes(targetVal) || o.value.toLowerCase().includes(targetVal));
-      if (opt) {
-        sel.value = opt.value;
+      const option = opts.find(opt => opt.text.toLowerCase().includes(targetVal) || opt.value.toLowerCase().includes(targetVal));
+      if (option) {
+        sel.value = option.value;
         sel.dispatchEvent(new Event('change', { bubbles: true }));
       }
     })()

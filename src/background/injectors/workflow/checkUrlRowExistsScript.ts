@@ -12,7 +12,7 @@ export function buildCheckUrlRowExistsScript(index: number): string {
         if (urlRows[idx]) return true;
 
         const labels = Array.from(root.querySelectorAll('.floating-label label, .url-row label, label'));
-        if (labels.some(l => (l.textContent || '').trim() === 'URL ' + (idx + 1))) return true;
+        if (labels.some(labelEl => (labelEl.textContent || '').trim() === 'URL ' + (idx + 1))) return true;
 
         const allInputs = Array.from(root.querySelectorAll('input'));
         if (allInputs.some(inp => inp.id && (

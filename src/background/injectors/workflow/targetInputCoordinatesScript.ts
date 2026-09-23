@@ -15,8 +15,8 @@ export function buildTargetInputCoordinatesScript(index: number): string {
         }
 
         const labels = Array.from(root.querySelectorAll('.floating-label label, .url-row label, label'));
-        const targetLabel = labels.find(l => {
-          const text = (l.textContent || '').trim();
+        const targetLabel = labels.find(labelEl => {
+          const text = (labelEl.textContent || '').trim();
           return text === 'URL ' + (idx + 1) || text.startsWith('URL ' + (idx + 1));
         });
         if (targetLabel) {

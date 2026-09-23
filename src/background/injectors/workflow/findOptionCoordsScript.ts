@@ -13,9 +13,9 @@ export function buildFindOptionCoordsScript(buttonSelector: string, optionText: 
 
       if (!listbox) {
         const allListboxes = Array.from(document.querySelectorAll('[role="listbox"], .listbox__options, .fake-menu-button__menu'));
-        listbox = allListboxes.find(m => {
-          const style = window.getComputedStyle(m);
-          return style.display !== 'none' && style.visibility !== 'hidden' && m.offsetParent !== null;
+        listbox = allListboxes.find(menu => {
+          const style = window.getComputedStyle(menu);
+          return style.display !== 'none' && style.visibility !== 'hidden' && menu.offsetParent !== null;
         }) || allListboxes[allListboxes.length - 1];
       }
 
@@ -26,8 +26,8 @@ export function buildFindOptionCoordsScript(buttonSelector: string, optionText: 
       const options = Array.from(listbox.querySelectorAll('[role="option"], .listbox__option, .menu__item, [role="menuitemradio"], [role="menuitem"], li'));
       let matched = options.find(opt => {
         const clone = opt.cloneNode(true);
-        const clipped = clone.querySelectorAll('.clipped');
-        clipped.forEach(c => c.remove());
+        const clippedNodes = clone.querySelectorAll('.clipped');
+        clippedNodes.forEach(clippedEl => clippedEl.remove());
         const text = (clone.textContent || '').trim().toLowerCase();
         return Boolean(text) && (text === target || text.includes(target) || (text.length >= 3 && target.includes(text)));
       });

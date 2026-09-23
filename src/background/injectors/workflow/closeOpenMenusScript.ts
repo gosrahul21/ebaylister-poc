@@ -2,9 +2,9 @@ export function buildCloseOpenMenusScript(): string {
   return `
     (function() {
       const menus = Array.from(document.querySelectorAll('.fake-menu-button__menu, .fake-menu-button__menu--reverse, .filter-menu, .listbox__options, [role="listbox"]'));
-      menus.forEach(m => {
-        if (m.style && m.style.display) {
-          m.style.removeProperty('display');
+      menus.forEach(menu => {
+        if (menu.style && menu.style.display) {
+          menu.style.removeProperty('display');
         }
       });
 

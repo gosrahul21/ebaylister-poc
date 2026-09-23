@@ -39,7 +39,7 @@ export function buildExtractItemSpecificsInUiOrderScript(): string {
             type = isMulti ? 'multiselect' : 'dropdown';
 
             const optionEls = Array.from(menu.querySelectorAll('.menu__item span, .filter-menu__text, .filter-menu__item span, .toggle-button__title, button.toggle-button'));
-            options = optionEls.map(o => (o.textContent || '').trim()).filter(Boolean);
+            options = optionEls.map(optionEl => (optionEl.textContent || '').trim()).filter(Boolean);
 
             const searchBox = menu.querySelector('.se-search-box input, input[name^="search-box-"], input');
             const searchAttrText = searchBox ? (
@@ -59,7 +59,7 @@ export function buildExtractItemSpecificsInUiOrderScript(): string {
         } else if (pillBtns.length > 0 || pillUl) {
           name = 'attributes.' + label;
           type = 'pill';
-          options = pillBtns.map(b => (b.textContent || '').trim()).filter(Boolean);
+          options = pillBtns.map(pillBtn => (pillBtn.textContent || '').trim()).filter(Boolean);
           if (options.length === 0) options = ['Yes', 'No'];
           selector = pillUl ? 'ul[aria-label="' + label + '"]' : '[data-testid="attribute"]';
         }
@@ -83,19 +83,19 @@ export function buildExtractItemSpecificsInUiOrderScript(): string {
 
       // Remove duplicates by name
       const uniqueMap = new Map();
-      fields.forEach(f => {
-        if (!uniqueMap.has(f.name)) {
-          uniqueMap.set(f.name, f);
+      fields.forEach(field => {
+        if (!uniqueMap.has(field.name)) {
+          uniqueMap.set(field.name, field);
         }
       });
       const uniqueFields = Array.from(uniqueMap.values());
 
       // Sort strictly by top vertical position (with 6px row tolerance), then left horizontal position
-      uniqueFields.sort((a, b) => {
-        if (Math.abs(a.top - b.top) > 6) {
-          return a.top - b.top;
+      uniqueFields.sort((fieldA, fieldB) => {
+        if (Math.abs(fieldA.top - fieldB.top) > 6) {
+          return fieldA.top - fieldB.top;
         }
-        return a.left - b.left;
+        return fieldA.left - fieldB.left;
       });
 
       return JSON.stringify(uniqueFields);

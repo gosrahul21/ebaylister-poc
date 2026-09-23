@@ -19,7 +19,7 @@ export async function fillAiFormFields(
     return currentPosition;
   }
 
-  const schemaFieldMap = new Map(formSchema.allFields.map(f => [f.name, f]));
+  const schemaFieldMap = new Map(formSchema.allFields.map(field => [field.name, field]));
 
   for (const fieldValue of aiFieldValues) {
     if (fieldValue.name === 'title' || fieldValue.name === 'categoryId'||  fieldValue.name === 'condition') continue;

@@ -19,7 +19,7 @@ export async function automateEbayListing(
   product?: AmazonProduct
 ): Promise<void> {
   const cleanCategories = Array.isArray(categoryQuery)
-    ? categoryQuery.map(c => (c || '').trim()).filter(Boolean)
+    ? categoryQuery.map(category => (category || '').trim()).filter(Boolean)
     : [];
 
   const queryText = cleanCategories.length > 0
@@ -34,7 +34,7 @@ export async function automateEbayListing(
 
   const runAutomation = async () => {
     // Brief pause to allow eBay scripts to initialize DOM
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(resolve => setTimeout(resolve, 1200));
 
     const debuggee = { tabId };
     try {

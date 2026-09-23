@@ -28,8 +28,8 @@ export function buildAllowOffersToggleScript(allow: boolean): string {
 
       if (!cb) {
         const switches = Array.from(document.querySelectorAll('button[role="switch"], input[type="checkbox"], .switch__control'));
-        cb = switches.find(s => {
-          const parentText = (s.parentElement?.textContent || s.closest('div')?.textContent || '').toLowerCase();
+        cb = switches.find(switchElement => {
+          const parentText = (switchElement.parentElement?.textContent || switchElement.closest('div')?.textContent || '').toLowerCase();
           return parentText.includes('allow offer') || parentText.includes('best offer');
         });
       }

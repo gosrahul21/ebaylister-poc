@@ -12,26 +12,26 @@ export function buildTargetElementPositionScript(
   return `
     (function() {
       const rawTarget = ${JSON.stringify(targetString)};
-      const selectors = rawTarget.split(',').map(s => s.trim()).filter(Boolean);
+      const selectors = rawTarget.split(',').map(selector => selector.trim()).filter(Boolean);
       let element = null;
 
-      for (const s of selectors) {
-        const idToTry = s.startsWith('#') ? s.slice(1) : s;
+      for (const selector of selectors) {
+        const idToTry = selector.startsWith('#') ? selector.slice(1) : selector;
         element = document.getElementById(idToTry);
         if (element) break;
 
-        if (s.startsWith('text:')) {
-          const searchText = s.slice(5).trim().toLowerCase();
+        if (selector.startsWith('text:')) {
+          const searchText = selector.slice(5).trim().toLowerCase();
           const allElements = Array.from(document.querySelectorAll('button, a, [role="button"], label, input, span, div'));
-          element = allElements.find(b => {
-            const txt = (b.textContent || b.getAttribute('aria-label') || '').trim().toLowerCase();
+          element = allElements.find(candidate => {
+            const txt = (candidate.textContent || candidate.getAttribute('aria-label') || '').trim().toLowerCase();
             return txt.includes(searchText);
           });
           if (element) break;
         }
 
         try {
-          element = document.querySelector(s);
+          element = document.querySelector(selector);
         } catch (err) {
         }
         if (element) break;

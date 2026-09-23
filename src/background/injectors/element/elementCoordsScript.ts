@@ -5,21 +5,21 @@ export function buildElementCoordsScript(selector: string): string {
   return `
     (function() {
       const sel = ${JSON.stringify(selector)};
-      const selectors = sel.split(',').map(s => s.trim());
+      const selectors = sel.split(',').map(selector => selector.trim());
       let element = null;
-      for (const s of selectors) {
-        if (s === 'radio:first') {
+      for (const selector of selectors) {
+        if (selector === 'radio:first') {
           const modal = document.querySelector('[role="dialog"], .modal, .lightbox-dialog') || document.body;
           element = modal.querySelector('input[type="radio"], [role="radio"], label.radio-label, label') || modal.querySelector('label');
-        } else if (s.startsWith('text:')) {
-          const searchText = s.slice(5).trim().toLowerCase();
+        } else if (selector.startsWith('text:')) {
+          const searchText = selector.slice(5).trim().toLowerCase();
           const allElements = Array.from(document.querySelectorAll('button, a, [role="button"], label, input, span'));
-          element = allElements.find(b => {
-            const txt = (b.textContent || b.getAttribute('aria-label') || '').trim().toLowerCase();
+          element = allElements.find(candidate => {
+            const txt = (candidate.textContent || candidate.getAttribute('aria-label') || '').trim().toLowerCase();
             return txt.includes(searchText);
           });
         } else {
-          element = document.querySelector(s);
+          element = document.querySelector(selector);
         }
         if (element) break;
       }

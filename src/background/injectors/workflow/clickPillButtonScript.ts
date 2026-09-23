@@ -5,13 +5,13 @@ export function buildClickPillButtonScript(label: string, optionText: string): s
       const targetOption = ${JSON.stringify(optionText.trim().toLowerCase())};
 
       // 1. Find container by ul[aria-label]
-      let ul = Array.from(document.querySelectorAll('ul[aria-label]')).find(u => 
-        (u.getAttribute('aria-label') || '').trim().toLowerCase() === targetLabel
+      let pillList = Array.from(document.querySelectorAll('ul[aria-label]')).find(pillList => 
+        (pillList.getAttribute('aria-label') || '').trim().toLowerCase() === targetLabel
       );
 
       let pills = [];
-      if (ul) {
-        pills = Array.from(ul.querySelectorAll('.summary__attributes--pill, button[aria-pressed], button'));
+      if (pillList) {
+        pills = Array.from(pillList.querySelectorAll('.summary__attributes--pill, button[aria-pressed], button'));
       } else {
         const attrContainers = Array.from(document.querySelectorAll('[data-testid="attribute"], .summary__attributes--field'));
         for (const container of attrContainers) {
@@ -28,7 +28,7 @@ export function buildClickPillButtonScript(label: string, optionText: string): s
         return JSON.stringify({ clicked: false, error: 'No pill buttons found for label: ' + targetLabel });
       }
 
-      const matchingPill = pills.find(p => (p.textContent || '').trim().toLowerCase() === targetOption);
+      const matchingPill = pills.find(pill => (pill.textContent || '').trim().toLowerCase() === targetOption);
       if (!matchingPill) {
         return JSON.stringify({ clicked: false, error: 'No pill button found matching option: ' + targetOption });
       }

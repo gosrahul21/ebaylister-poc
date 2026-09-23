@@ -58,7 +58,7 @@ export function buildExtractEbayFormSchemaScript(): string {
           const menu = menuId ? document.getElementById(menuId) : null;
           const isMulti = menu ? menu.querySelector('[role="menuitemcheckbox"], .filter-menu__item, .filter-menu') !== null : false;
           const optionItems = menu ? Array.from(menu.querySelectorAll('.menu__item span, .filter-menu__text, .filter-menu__item span, .toggle-button__title, button.toggle-button')) : [];
-          const options = optionItems.map(o => (o.textContent || '').trim()).filter(Boolean);
+          const options = optionItems.map(optionEl => (optionEl.textContent || '').trim()).filter(Boolean);
 
           const searchBox = menu ? menu.querySelector('.se-search-box input, input[name^="search-box-"], input') : null;
           const searchAttrText = searchBox ? (
@@ -97,8 +97,8 @@ export function buildExtractEbayFormSchemaScript(): string {
           });
         } else if (pillBtns.length > 0 || pillUl) {
           const name = 'attributes.' + label;
-          const options = pillBtns.map(b => (b.textContent || '').trim()).filter(Boolean);
-          const currentVal = pillBtns.find(b => b.getAttribute('aria-pressed') === 'true')?.textContent?.trim() || '';
+          const options = pillBtns.map(pillBtn => (pillBtn.textContent || '').trim()).filter(Boolean);
+          const currentVal = pillBtns.find(pillBtn => pillBtn.getAttribute('aria-pressed') === 'true')?.textContent?.trim() || '';
           allFields.push({
             id: 'attr-' + name,
             name: name,
@@ -178,7 +178,7 @@ export function buildExtractEbayFormSchemaScript(): string {
       const remainingControls = Array.from(document.querySelectorAll('input[name], select[name], textarea[name]'));
       remainingControls.forEach(ctrl => {
         const name = ctrl.getAttribute('name');
-        if (!name || name.startsWith('search-box-') || name.endsWith('-hidden') || allFields.some(f => f.name === name)) return;
+        if (!name || name.startsWith('search-box-') || name.endsWith('-hidden') || allFields.some(field => field.name === name)) return;
         if (ctrl.closest('.summary__price, [class*="summary__price"], .summary__shipping, [class*="summary__shipping"]')) return;
 
         const labelEl = ctrl.closest('.se-field')?.querySelector('.field__label, label');

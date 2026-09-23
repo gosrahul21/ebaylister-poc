@@ -14,9 +14,9 @@ export function buildClickMatchingDropdownOptionScript(buttonSelector: string, t
 
       if (!openMenu) {
         const menus = Array.from(document.querySelectorAll('[role="menu"], [role="listbox"], .fake-menu-button__menu, .filter-menu, .se-filter-menu-button__menu-container, .se-toggle-group-menu'));
-        openMenu = menus.find(m => {
-          const style = window.getComputedStyle(m);
-          return style.display !== 'none' && style.visibility !== 'hidden' && m.offsetParent !== null;
+        openMenu = menus.find(menu => {
+          const style = window.getComputedStyle(menu);
+          return style.display !== 'none' && style.visibility !== 'hidden' && menu.offsetParent !== null;
         }) || menus[menus.length - 1];
       }
 

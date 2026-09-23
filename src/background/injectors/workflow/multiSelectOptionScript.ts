@@ -6,7 +6,7 @@ export function buildMultiSelectOptionScript(
   return `
     (function() {
       const btnSelector = ${JSON.stringify(buttonSelector)};
-      const targetValues = ${JSON.stringify(values.map(v => v.trim()))};
+      const targetValues = ${JSON.stringify(values.map(val => val.trim()))};
       const allowCustom = ${JSON.stringify(allowCustom)};
 
       const btn = document.querySelector(btnSelector);
@@ -26,9 +26,9 @@ export function buildMultiSelectOptionScript(
 
       if (!openMenu) {
         const menus = Array.from(document.querySelectorAll('.fake-menu-button__menu, .filter-menu, .listbox__options, [role="listbox"]'));
-        openMenu = menus.find(m => {
-          const style = window.getComputedStyle(m);
-          return style.display !== 'none' && style.visibility !== 'hidden' && m.offsetParent !== null;
+        openMenu = menus.find(menu => {
+          const style = window.getComputedStyle(menu);
+          return style.display !== 'none' && style.visibility !== 'hidden' && menu.offsetParent !== null;
         }) || menus[menus.length - 1];
       }
 
