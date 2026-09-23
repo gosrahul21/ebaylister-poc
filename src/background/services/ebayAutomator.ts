@@ -47,16 +47,10 @@ export async function automateEbayListing(
         y: Math.floor(Math.random() * 100) + 40
       };
 
-      // ── STEP 1: Click Search Button ──────────────────────────────────────────
       currentPosition = await executeSearchStep(debuggee, currentPosition);
-
-      // ── STEP 2: Click "Continue without match" Button ──────────────────────
       currentPosition = await executeIdentifyStep(debuggee, tabId, currentPosition);
-
-      // ── STEP 3: Handle "Confirm details" Modal Popup ───────────────────────
       currentPosition = await executeConditionStep(debuggee, currentPosition);
 
-      // ── STEP 4: Fill Main Form (/lstng?draftId=...) ──────────────────
       const targetProduct = product || DEFAULT_MOCK_PRODUCT;
       await executeListingFormStep(debuggee, tabId, currentPosition, targetProduct);
 

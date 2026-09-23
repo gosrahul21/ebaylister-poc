@@ -6,7 +6,6 @@ import { cleanExtractElementText } from "./extractElementText";
  * Extracts all visible product details from any Amazon product details page.
  */
 export function extractAmazonProductDetails(): AmazonProduct | null {
-  // 1. Extract ASIN
   let asin = '';
   const asinInput = document.querySelector<HTMLInputElement>('input#ASIN, input[name="ASIN"]');
   if (asinInput && asinInput.value) {
@@ -28,7 +27,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     }
   }
 
-  // 2. Extract Title
   let title = '';
   const titleSelectors = [
     '#productTitle',
@@ -52,7 +50,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     }
   }
 
-  // Fallback to document.title if element-specific title is not found
   if (!title && document.title) {
     title = document.title
       .replace(/^Amazon\.[a-z.]+:?\s*/i, '')
@@ -64,7 +61,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     title = 'Amazon Product';
   }
 
-  // 3. Extract Price
   let price = '';
 
   const priceSelectors = [
@@ -97,14 +93,12 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     }
   }
 
-  // 4. Extract Brand
   let brand = '';
   const brandEl = document.querySelector('#bylineInfo, #bylineInfo_feature_div a, #brand');
   if (brandEl) {
     brand = brandEl.textContent?.trim().replace(/^(Visit the|Brand:)\s*/i, '') || '';
   }
 
-  // 4.5. Extract Category Path from Wayfinding Breadcrumbs
   const categoryPath: string[] = [];
   const breadcrumbEls = document.querySelectorAll(
     '#wayfinding-breadcrumbs_feature_div ul li a, .a-breadcrumb ul li a, #wayfinding-breadcrumbs_feature_div li a'
@@ -116,7 +110,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     }
   });
 
-  // 5. Extract Rating & Review Count
   let rating = '';
   const ratingEl = document.querySelector('#acrPopover .a-icon-alt, #averageCustomerReviews .a-icon-alt');
   if (ratingEl) {
@@ -129,7 +122,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     reviewCount = reviewCountEl.textContent?.trim() || '';
   }
 
-  // 6. Extract Images (Main + Gallery)
   let mainImage = '';
   const mainImgEl = document.querySelector<HTMLImageElement>(
     '#landingImage, #imgBlkFront, #main-image-container img, #ebooksImgBlkFront'
@@ -141,7 +133,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
   const imageSet = new Set<string>();
   if (mainImage) imageSet.add(mainImage);
 
-  // Gallery thumbnails
   const thumbImgs = document.querySelectorAll<HTMLImageElement>(
     '#altImages img, #imageBlock img, #main-image-container img, .imageThumbnail img'
   );
@@ -153,9 +144,8 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     }
   });
 
-  const images = Array.from(imageSet).slice(0, 10); // Store up to top 10 images
+  const images = Array.from(imageSet).slice(0, 10);
 
-  // 7. Extract Feature Bullets
   const features: string[] = [];
   const bulletEls = document.querySelectorAll(
     '#feature-bullets ul li span.a-list-item, #featurebullets_feature_div ul li span.a-list-item'
@@ -167,10 +157,8 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     }
   });
 
-  // 8. Extract Description cleanly
   let description = '';
 
-  // Try paragraphs inside #productDescription first (most clean human text)
   const descParagraphs = document.querySelectorAll('#productDescription p, #productDescription span');
   if (descParagraphs.length > 0) {
     const pTexts: string[] = [];
@@ -193,15 +181,12 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     description = cleanExtractElementText(aplusEl);
   }
 
-  // Cap description to 2500 chars to avoid memory overhead
   if (description.length > 2500) {
     description = description.slice(0, 2500) + '...';
   }
 
-  // 9. Extract Specifications Table / Tech Specs
   const specifications: Record<string, string> = {};
 
-  // Table spec format (#productDetails_techSpec_section_1, .prodDetTable)
   const specRows = document.querySelectorAll(
     '#productDetails_techSpec_section_1 tr, .prodDetTable tr, #technicalSpecifications_section_1 tr'
   );
@@ -213,7 +198,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     }
   });
 
-  // Detail bullets spec format (#detailBullets_feature_div li)
   if (Object.keys(specifications).length === 0) {
     const detailBullets = document.querySelectorAll('#detailBullets_feature_div li span.a-list-item');
     detailBullets.forEach(item => {
@@ -229,7 +213,6 @@ export function extractAmazonProductDetails(): AmazonProduct | null {
     });
   }
 
-  // 10. Extract Availability
   let availability = 'In Stock';
   const availEl = document.querySelector('#availability span, #availability');
   if (availEl && availEl.textContent?.trim()) {
