@@ -19,7 +19,6 @@ export async function saveGeminiApiKey(apiKey: string): Promise<void> {
   await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: apiKey });
 }
 
-/** Get Gemini API Key from chrome.storage.local or config fallback */
 export async function getGeminiApiKey(): Promise<string | null> {
-  return config.GEMINI_API_KEY || null;
+  return (config as { GEMINI_API_KEY?: string }).GEMINI_API_KEY || null;
 }
