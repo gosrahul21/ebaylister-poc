@@ -1,7 +1,7 @@
 import { AmazonProduct } from '../../../types';
 import { Position } from '@/background/helper/moveCursorToTargetElement';
 import { PricingAiResult } from '../../../apis/gemini';
-import { extractPricingFields } from '../schemaExtractor';
+import { extractPricingFields } from '../schema';
 import { fillListboxOption } from './listboxHelper';
 import { fillInputField } from './formFieldHandlers';
 import { buildImmediatePaymentCheckboxScript, buildAllowOffersToggleScript } from '../../injectors';

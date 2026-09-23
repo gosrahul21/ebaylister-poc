@@ -1,5 +1,5 @@
 import { AmazonProduct, FieldValueMapping, ListingFormSchema } from '../../../types';
-import { extractFormSchema } from '../schemaExtractor';
+import { extractFormSchema } from '../schema';
 import { Position } from '@/background/helper/moveCursorToTargetElement';
 import {
   ensureDebuggerAttached,

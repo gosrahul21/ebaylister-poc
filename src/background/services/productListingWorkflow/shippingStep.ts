@@ -1,7 +1,7 @@
 import { AmazonProduct } from '../../../types';
 import { Position } from '@/background/helper/moveCursorToTargetElement';
 import { generateShippingValues, ShippingAiResult } from '../../../apis/gemini';
-import { extractShippingFields } from '../schemaExtractor';
+import { extractShippingFields } from '../schema';
 import { fillListboxOption } from './listboxHelper';
 import { fillInputField } from './formFieldHandlers';
 
