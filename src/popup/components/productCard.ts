@@ -26,7 +26,7 @@ export function createProductCard(product: AmazonProduct, callbacks: CardCallbac
         <div class="product-meta">
           <span class="price-tag">${escapeHtml(product.price)}</span>
           <span class="asin-badge">ASIN: ${escapeHtml(product.asin)}</span>
-          ${product.category ? `<span class="asin-badge" style="color: #38bdf8; background: rgba(56, 189, 248, 0.1);">📂 ${escapeHtml(product.category)}</span>` : ''}
+          ${product.category ? `<span class="asin-badge category-badge">📂 ${escapeHtml(product.category)}</span>` : ''}
         </div>
       </div>
     </div>
@@ -34,7 +34,7 @@ export function createProductCard(product: AmazonProduct, callbacks: CardCallbac
     ${featuresHtml ? `<ul class="features-list">${featuresHtml}</ul>` : ''}
 
     <div class="card-actions">
-      <div style="display:flex; gap: 6px; flex: 1;">
+      <div class="flex-gap-6">
         <button class="action-btn view" data-action="view" data-id="${product.id}">
           <span>👁️</span> Specs
         </button>
@@ -42,7 +42,7 @@ export function createProductCard(product: AmazonProduct, callbacks: CardCallbac
           <span>🏷️</span> List on eBay ↗
         </button>
       </div>
-      <div style="display:flex; gap: 4px;">
+      <div class="flex-gap-4">
         <button class="action-btn" data-action="copy-json" data-id="${product.id}" title="Copy JSON">
           📋 JSON
         </button>

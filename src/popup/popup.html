@@ -13,8 +13,8 @@
       <span class="brand-icon">🛍️</span>
       <div class="brand-title">Product Lister <span>POC</span></div>
     </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <button class="action-btn" id="open-settings-btn" title="Global Listing Settings" style="padding: 5px 8px;">
+    <div class="header-actions">
+      <button class="action-btn settings-icon-btn" id="open-settings-btn" title="Global Listing Settings">
         ⚙️ Settings
       </button>
       <div class="saved-count-badge" id="count-badge">0 Saved</div>
@@ -69,44 +69,44 @@
 
   <!-- Global Settings Modal -->
   <div class="modal-overlay" id="settings-modal">
-    <div class="modal-card" style="max-height: 480px; max-width: 400px;">
+    <div class="modal-card modal-card-settings">
       <div class="modal-header">
         <h2>⚙️ Global Listing Settings</h2>
         <button class="close-modal" id="close-settings-modal-btn">✕</button>
       </div>
-      <div class="modal-body" style="gap: 12px; padding: 16px;">
-        <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+      <div class="modal-body modal-body-settings">
+        <div class="settings-subtext">
           Set universal pricing markup and default eBay listing format preferences.
         </div>
 
         <!-- Markup % -->
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 700; color: #94a3b8;">PRICE MARKUP (%)</label>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="number" id="setting-markup-pct" min="0" max="500" value="15" style="width: 100px; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 13px; font-weight: 700;" />
-            <span style="font-size: 11px; color: var(--text-dim);" id="markup-preview-text">% added to Amazon price</span>
+        <div class="field-group">
+          <label class="field-label">PRICE MARKUP (%)</label>
+          <div class="field-row">
+            <input type="number" id="setting-markup-pct" min="0" max="500" value="15" class="setting-input-number" />
+            <span class="setting-sub-label" id="markup-preview-text">% added to Amazon price</span>
           </div>
         </div>
 
         <!-- Format -->
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 700; color: #94a3b8;">LISTING FORMAT</label>
-          <select id="setting-format" style="padding: 8px; background: rgba(22,24,45,0.9); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 12.5px;">
+        <div class="field-group">
+          <label class="field-label">LISTING FORMAT</label>
+          <select id="setting-format" class="setting-select">
             <option value="Buy It Now">Buy It Now (Fixed Price)</option>
             <option value="Auction">Auction</option>
           </select>
         </div>
 
         <!-- Auction Options -->
-        <div id="auction-settings-group" style="display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 10.5px; font-weight: 700; color: #94a3b8;">AUCTION STARTING BID (%)</label>
-            <input type="number" id="setting-bid-pct" min="10" max="100" value="70" style="width: 100px; padding: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 12px;" />
+        <div id="auction-settings-group" class="auction-group">
+          <div class="field-group">
+            <label class="field-label-sm">AUCTION STARTING BID (%)</label>
+            <input type="number" id="setting-bid-pct" min="10" max="100" value="70" class="setting-input-number-sm" />
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 10.5px; font-weight: 700; color: #94a3b8;">AUCTION DURATION</label>
-            <select id="setting-duration" style="padding: 6px; background: rgba(22,24,45,0.9); border: 1px solid var(--glass-border); border-radius: 6px; color: #fff; font-size: 12px;">
+          <div class="field-group">
+            <label class="field-label-sm">AUCTION DURATION</label>
+            <select id="setting-duration" class="setting-select-sm">
               <option value="3 days">3 days</option>
               <option value="5 days">5 days</option>
               <option value="7 days" selected>7 days</option>
@@ -116,18 +116,18 @@
         </div>
 
         <!-- Immediate Pay Checkbox -->
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cbd5e1; cursor: pointer; margin-top: 4px;">
-          <input type="checkbox" id="setting-immediate-pay" checked style="width: 16px; height: 16px; accent-color: var(--amazon-orange);" />
+        <label class="checkbox-label">
+          <input type="checkbox" id="setting-immediate-pay" checked class="setting-checkbox" />
           Require immediate payment for Buy It Now
         </label>
 
         <!-- Allow Offers Checkbox -->
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cbd5e1; cursor: pointer; margin-top: 2px;">
-          <input type="checkbox" id="setting-allow-offers" style="width: 16px; height: 16px; accent-color: var(--amazon-orange);" />
+        <label class="checkbox-label-sm">
+          <input type="checkbox" id="setting-allow-offers" class="setting-checkbox" />
           Allow buyers to send offers (Best Offer)
         </label>
 
-        <button id="save-settings-btn" style="width: 100%; margin-top: 8px; padding: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
+        <button id="save-settings-btn" class="save-settings-btn">
           💾 Save Global Settings
         </button>
       </div>

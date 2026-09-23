@@ -1,0 +1,107 @@
+:host {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 2147483647 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.saver-root-host {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 2147483647 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  transform: none !important;
+  filter: none !important;
+  width: auto !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+}
+
+.saver-pill-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 12px 22px !important;
+  background: linear-gradient(135deg, #131921 0%, #232f3e 100%) !important;
+  color: #ff9900 !important;
+  border: 2px solid #ff9900 !important;
+  border-radius: 50px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 153, 0, 0.4) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  white-space: nowrap !important;
+  outline: none !important;
+  text-decoration: none !important;
+  height: auto !important;
+  width: auto !important;
+}
+
+.saver-pill-button:hover {
+  transform: translateY(-3px) scale(1.04) !important;
+  box-shadow: 0 14px 35px rgba(255, 153, 0, 0.55), 0 0 20px rgba(255, 153, 0, 0.6) !important;
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%) !important;
+}
+
+.saver-pill-button:active {
+  transform: translateY(-1px) scale(0.98) !important;
+}
+
+.save-btn-icon {
+  font-size: 18px !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+}
+
+.save-btn-label {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #ff9900 !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+}
+
+.saver-toast {
+  position: fixed !important;
+  bottom: 84px !important;
+  right: 24px !important;
+  padding: 12px 20px !important;
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4) !important;
+  z-index: 2147483647 !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+}
+
+.saver-toast.error {
+  background: #ef4444 !important;
+}
